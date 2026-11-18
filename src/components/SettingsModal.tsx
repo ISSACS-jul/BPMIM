@@ -101,7 +101,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
                 Opciones & Configuración
                 <span className="text-[10px] font-semibold bg-brand-950/80 text-brand-400 border border-brand-800/60 px-2 py-0.5 rounded-full">
-                  BPMIM v0.3
+                  BPMIM v0.3.5
                 </span>
               </h2>
               <p className="text-xs text-slate-400">

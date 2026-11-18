@@ -23,7 +23,7 @@ export const Header: React.FC<HeaderProps> = ({
           <h1 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
             BPMIM
             <span className="text-[10px] font-medium bg-dark-700 text-brand-400 px-2 py-0.5 rounded-full border border-dark-600">
-              v0.3
+              v0.3.5
             </span>
           </h1>
           <p className="text-xs text-slate-400">

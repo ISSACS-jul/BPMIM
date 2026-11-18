@@ -1,7 +1,7 @@
 [package]
-name = "banco-preguntas"
-version = "0.1.0"
-description = "Banco de Preguntas & Generador de Evaluaciones"
+name = "bpmim"
+version = "0.3.5"
+description = "BPMIM - Banco de Preguntas & Generador de Evaluaciones"
 authors = ["Docente"]
 edition = "2021"
 
