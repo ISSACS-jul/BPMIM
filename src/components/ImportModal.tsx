@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Question } from "../types/quiz";
-import { X, Upload, FileText, Check, AlertCircle, PlusCircle, RefreshCw } from "lucide-react";
+import { extractBankZip } from "../utils/zipHandler";
+import { X, Upload, FileText, Check, AlertCircle, PlusCircle, RefreshCw, Archive } from "lucide-react";
 
 interface ImportModalProps {
   isOpen: boolean;
@@ -16,12 +17,14 @@ export const ImportModal: React.FC<ImportModalProps> = ({
   const [tab, setTab] = useState<"file" | "paste">("file");
   const [rawJson, setRawJson] = useState("");
   const [parsedQuestions, setParsedQuestions] = useState<Question[] | null>(null);
+  const [importedImagesCount, setImportedImagesCount] = useState<number>(0);
   const [importMode, setImportMode] = useState<"append" | "replace">("append");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   if (!isOpen) return null;
 
-  const validateAndParse = (text: string) => {
+  const validateAndParseJson = (text: string) => {
     try {
       setErrorMsg(null);
       const parsed = JSON.parse(text);
@@ -32,30 +35,57 @@ export const ImportModal: React.FC<ImportModalProps> = ({
         throw new Error("El archivo no contiene preguntas.");
       }
       setParsedQuestions(parsed);
+      setImportedImagesCount(0);
     } catch (e: any) {
       setParsedQuestions(null);
       setErrorMsg(e.message || "Formato JSON inválido.");
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const content = event.target?.result as string;
-      setRawJson(content);
-      validateAndParse(content);
-    };
-    reader.readAsText(file);
+    setIsProcessing(true);
+    setErrorMsg(null);
+
+    const isZip = file.name.endsWith(".zip") || file.type.includes("zip");
+
+    if (isZip) {
+      try {
+        const { questions, imagesCount } = await extractBankZip(file);
+        setParsedQuestions(questions);
+        setImportedImagesCount(imagesCount);
+      } catch (err: any) {
+        console.error("Error al procesar archivo ZIP:", err);
+        setErrorMsg(err.message || "No se pudo extraer el archivo ZIP.");
+        setParsedQuestions(null);
+      } finally {
+        setIsProcessing(false);
+      }
+    } else {
+      // Archivo .json
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const content = event.target?.result as string;
+        setRawJson(content);
+        validateAndParseJson(content);
+        setIsProcessing(false);
+      };
+      reader.onerror = () => {
+        setErrorMsg("Error al leer el archivo.");
+        setIsProcessing(false);
+      };
+      reader.readAsText(file);
+    }
+
     e.target.value = "";
   };
 
   const handlePasteChange = (text: string) => {
     setRawJson(text);
     if (text.trim()) {
-      validateAndParse(text);
+      validateAndParseJson(text);
     } else {
       setParsedQuestions(null);
       setErrorMsg(null);
@@ -80,7 +110,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
             <div>
               <h2 className="text-base font-bold text-slate-100">Importar Banco de Preguntas</h2>
               <p className="text-xs text-slate-400">
-                Carga preguntas desde un archivo de respaldo o pegando el código JSON
+                Admite paquetes completos .zip (con imágenes) o archivos .json
               </p>
             </div>
           </div>
@@ -102,8 +132,8 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                 : "border-transparent text-slate-400 hover:text-slate-200"
             }`}
           >
-            <Upload className="w-3.5 h-3.5" />
-            <span>Seleccionar Archivo .json</span>
+            <Archive className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Archivo .zip o .json</span>
           </button>
           <button
             onClick={() => setTab("paste")}
@@ -114,7 +144,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
             }`}
           >
             <FileText className="w-3.5 h-3.5" />
-            <span>Pegar Texto Directamente</span>
+            <span>Pegar Texto JSON Directo</span>
           </button>
         </div>
 
@@ -130,17 +160,20 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                   <Upload className="w-6 h-6" />
                 </div>
                 <p className="text-sm font-semibold text-slate-200">
-                  Haz clic para buscar en tus carpetas o arrastra tu archivo aquí
+                  {isProcessing
+                    ? "Extrayendo archivo y guardando imágenes..."
+                    : "Haz clic para buscar o arrastra tu archivo .zip o .json"}
                 </p>
                 <p className="text-xs text-slate-400 mt-1">
-                  Admite archivos de respaldo en formato <strong>.json</strong>
+                  Recomendado: <strong>.zip</strong> (contiene las preguntas y restaura automáticamente la carpeta <code>imagenes/</code>)
                 </p>
                 <input
                   id="importFileInput"
                   type="file"
-                  accept=".json"
+                  accept=".json,.zip,application/zip,application/x-zip-compressed"
                   onChange={handleFileUpload}
                   className="hidden"
+                  disabled={isProcessing}
                 />
               </label>
             </div>
@@ -168,10 +201,13 @@ export const ImportModal: React.FC<ImportModalProps> = ({
           )}
 
           {parsedQuestions && (
-            <div className="p-3 bg-emerald-950/40 border border-emerald-800/60 rounded-xl text-xs text-emerald-300 space-y-2">
+            <div className="p-4 bg-emerald-950/40 border border-emerald-800/60 rounded-xl text-xs text-emerald-300 space-y-3">
               <div className="flex items-center gap-2 font-semibold text-emerald-200">
                 <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>¡Se detectaron {parsedQuestions.length} preguntas válidas para importar!</span>
+                <span>
+                  ¡Se detectaron {parsedQuestions.length} preguntas válidas
+                  {importedImagesCount > 0 ? ` y ${importedImagesCount} imágenes extraídas al banco` : ""}!
+                </span>
               </div>
 
               {/* Modo de importación: Agregar vs Reemplazar */}

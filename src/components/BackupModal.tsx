@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { Question } from "../types/quiz";
 import { saveFileWithDialog } from "../utils/fileDialog";
-import { X, FolderOpen, Copy, Check, Database } from "lucide-react";
+import { createBankZip } from "../utils/zipHandler";
+import { X, FolderOpen, Copy, Check, Database, Archive } from "lucide-react";
 
 interface BackupModalProps {
   isOpen: boolean;
@@ -22,12 +23,38 @@ export const BackupModal: React.FC<BackupModalProps> = ({
 
   const jsonString = JSON.stringify(questions, null, 2);
   const jsonSizeKB = (new Blob([jsonString]).size / 1024).toFixed(1);
-  const filename = `Banco_Preguntas_${new Date().toISOString().slice(0, 10)}.json`;
 
-  const handleSaveWithDialog = async () => {
+  // 1. Guardar como ZIP (Preguntas + Carpeta imagenes/)
+  const handleSaveZipWithDialog = async () => {
     setIsSaving(true);
     setSavedPath(null);
 
+    try {
+      const zipBlob = await createBankZip(questions);
+      const filename = `BPMIM_Banco_Completo_${new Date().toISOString().slice(0, 10)}.zip`;
+      const result = await saveFileWithDialog(
+        filename,
+        zipBlob,
+        "Paquete ZIP con Imágenes (*.zip)",
+        "zip"
+      );
+      if (result.success) {
+        setSavedPath(result.path || filename);
+      }
+    } catch (err) {
+      console.error("Error al generar ZIP del banco:", err);
+      alert("No se pudo generar el archivo ZIP.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // 2. Guardar como JSON directo
+  const handleSaveJsonWithDialog = async () => {
+    setIsSaving(true);
+    setSavedPath(null);
+
+    const filename = `BPMIM_Banco_${new Date().toISOString().slice(0, 10)}.json`;
     const result = await saveFileWithDialog(
       filename,
       jsonString,
@@ -36,10 +63,8 @@ export const BackupModal: React.FC<BackupModalProps> = ({
     );
 
     setIsSaving(false);
-
     if (result.success) {
-      setSavedPath(result.path || "Tu carpeta de descargas");
-      setTimeout(() => setSavedPath(null), 8000);
+      setSavedPath(result.path || filename);
     }
   };
 
@@ -65,7 +90,7 @@ export const BackupModal: React.FC<BackupModalProps> = ({
             <div>
               <h2 className="text-base font-bold text-slate-100">Respaldar Banco de Preguntas</h2>
               <p className="text-xs text-slate-400">
-                Selecciona la carpeta exacta donde deseas guardar tu copia de seguridad
+                Guarda una copia completa en archivo .zip (con imágenes) o en formato .json
               </p>
             </div>
           </div>
@@ -87,11 +112,11 @@ export const BackupModal: React.FC<BackupModalProps> = ({
             </div>
             <div>
               <span className="block text-xl font-bold text-brand-400">{jsonSizeKB} KB</span>
-              <span className="text-xs text-slate-400">Tamaño del archivo</span>
+              <span className="text-xs text-slate-400">Tamaño del texto</span>
             </div>
             <div>
-              <span className="block text-xl font-bold text-emerald-400">JSON</span>
-              <span className="text-xs text-slate-400">Formato estándar</span>
+              <span className="block text-xl font-bold text-emerald-400">ZIP / JSON</span>
+              <span className="text-xs text-slate-400">Formatos compatibles</span>
             </div>
           </div>
 
@@ -109,12 +134,34 @@ export const BackupModal: React.FC<BackupModalProps> = ({
 
           {/* Opciones de Guardado */}
           <div className="space-y-3">
-            <p className="text-xs text-slate-300">Selecciona cómo deseas guardar tu respaldo:</p>
+            <p className="text-xs text-slate-300">Selecciona el formato de respaldo:</p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Opción 1: Elegir carpeta y Guardar como... */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* Opción 1: ZIP Completo con Imágenes */}
               <button
-                onClick={handleSaveWithDialog}
+                onClick={handleSaveZipWithDialog}
+                disabled={isSaving}
+                className="p-4 bg-dark-800 hover:bg-dark-750 border border-dark-750 hover:border-emerald-500 rounded-xl text-left transition-all group flex flex-col justify-between shadow-sm active:scale-[0.98]"
+              >
+                <div>
+                  <div className="w-8 h-8 rounded-lg bg-emerald-600/20 text-emerald-400 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform">
+                    <Archive className="w-4 h-4" />
+                  </div>
+                  <h3 className="text-sm font-semibold text-slate-100">
+                    Paquete ZIP Completo
+                  </h3>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Incluye el JSON y la carpeta <code>imagenes/</code> adjunta. Ideal para no perder fotos.
+                  </p>
+                </div>
+                <span className="mt-4 text-xs font-semibold text-emerald-400 flex items-center gap-1">
+                  {isSaving ? "Guardando..." : "Guardar ZIP &rarr;"}
+                </span>
+              </button>
+
+              {/* Opción 2: Solo JSON */}
+              <button
+                onClick={handleSaveJsonWithDialog}
                 disabled={isSaving}
                 className="p-4 bg-dark-800 hover:bg-dark-750 border border-dark-750 hover:border-brand-500 rounded-xl text-left transition-all group flex flex-col justify-between shadow-sm active:scale-[0.98]"
               >
@@ -123,34 +170,34 @@ export const BackupModal: React.FC<BackupModalProps> = ({
                     <FolderOpen className="w-4 h-4" />
                   </div>
                   <h3 className="text-sm font-semibold text-slate-100">
-                    Elegir Carpeta & Guardar (.json)
+                    Solo Archivo .json
                   </h3>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Abre el explorador de archivos para elegir la carpeta (Documentos, USB, Google Drive) y el nombre.
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Guarda únicamente las preguntas y fórmulas en un archivo de texto ligero.
                   </p>
                 </div>
                 <span className="mt-4 text-xs font-semibold text-brand-400 flex items-center gap-1">
-                  {isSaving ? "Abriendo selector..." : "Guardar como... &rarr;"}
+                  {isSaving ? "Guardando..." : "Guardar JSON &rarr;"}
                 </span>
               </button>
 
-              {/* Opción 2: Copiar texto JSON */}
+              {/* Opción 3: Copiar texto JSON */}
               <button
                 onClick={handleCopy}
-                className="p-4 bg-dark-800 hover:bg-dark-750 border border-dark-750 hover:border-emerald-500/50 rounded-xl text-left transition-all group flex flex-col justify-between shadow-sm active:scale-[0.98]"
+                className="p-4 bg-dark-800 hover:bg-dark-750 border border-dark-750 hover:border-blue-500/50 rounded-xl text-left transition-all group flex flex-col justify-between shadow-sm active:scale-[0.98]"
               >
                 <div>
-                  <div className="w-8 h-8 rounded-lg bg-emerald-600/20 text-emerald-400 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform">
+                  <div className="w-8 h-8 rounded-lg bg-blue-600/20 text-blue-400 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform">
                     {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                   </div>
                   <h3 className="text-sm font-semibold text-slate-100">
-                    {copied ? "¡Copiado al Portapapeles!" : "Copiar Texto JSON"}
+                    {copied ? "¡Copiado!" : "Copiar JSON"}
                   </h3>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Copia todo el contenido para pegarlo en cualquier archivo de texto o enviarlo por mensaje.
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Copia todo el texto al portapapeles para pegarlo en otro lugar.
                   </p>
                 </div>
-                <span className="mt-4 text-xs font-semibold text-emerald-400 flex items-center gap-1">
+                <span className="mt-4 text-xs font-semibold text-blue-400 flex items-center gap-1">
                   {copied ? "Listo ✓" : "Copiar texto &rarr;"}
                 </span>
               </button>
