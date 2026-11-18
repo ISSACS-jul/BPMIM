@@ -1,14 +1,39 @@
+import { saveImage, fileToDataUrl } from "./imageStore";
+import { buildImageMarkdown } from "./imageSize";
+
+/**
+ * Procesa un archivo de imagen, lo guarda en el almacén de BPMIM (disco + indexedDB)
+ * y devuelve la etiqueta Markdown con el tamaño seleccionado: ![alt|50%](imagenes/archivo.png)
+ */
+export async function processAndSaveImage(
+  file: File | Blob,
+  customName?: string,
+  widthPercent: number = 50
+): Promise<{ markdownTag: string; path: string }> {
+  const dataUrl = await fileToDataUrl(file);
+  const ext = (file as File).name?.split(".").pop() || "png";
+  const timestamp = Date.now();
+  const filename = customName
+    ? `${customName}.${ext}`
+    : `img_${timestamp}.${ext}`;
+
+  const relativePath = await saveImage(filename, dataUrl);
+  const altText = `Figura_${timestamp.toString().slice(-4)}`;
+  const markdownTag = buildImageMarkdown(altText, relativePath, widthPercent);
+
+  return { markdownTag, path: relativePath };
+}
+
 /**
  * Intercepta eventos de pegado (Ctrl+V) en áreas de texto o inputs.
- * Si el usuario tiene una imagen copiada en el portapapeles, la convierte
- * a formato legible (Data URL base64) y la inserta con la sintaxis Markdown:
- * ![Descripción](data:image/png;base64,...)
+ * Si contiene una imagen, la guarda en BPMIM y añade la etiqueta Markdown con su tamaño.
  */
 export function handleClipboardImage(
   event: React.ClipboardEvent<HTMLTextAreaElement>,
   currentText: string,
   setText: (newText: string) => void,
-  onImageInserted?: (info: string) => void
+  onImageInserted?: (info: string) => void,
+  widthPercent: number = 50
 ): boolean {
   const items = event.clipboardData?.items;
   if (!items) return false;
@@ -20,25 +45,26 @@ export function handleClipboardImage(
       const blob = item.getAsFile();
       if (!blob) return false;
 
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const base64 = e.target?.result as string;
-        const textarea = event.target as HTMLTextAreaElement;
-        const start = textarea.selectionStart || currentText.length;
-        const end = textarea.selectionEnd || currentText.length;
+      processAndSaveImage(blob, undefined, widthPercent)
+        .then(({ markdownTag, path }) => {
+          const textarea = event.target as HTMLTextAreaElement;
+          const start = textarea.selectionStart || currentText.length;
+          const end = textarea.selectionEnd || currentText.length;
 
-        const timestamp = new Date().toISOString().slice(11, 19).replace(/:/g, "");
-        const imageMarkdown = `\n![Figura ${timestamp}](${base64})\n`;
+          const updatedText =
+            currentText.substring(0, start) +
+            markdownTag +
+            currentText.substring(end);
+          setText(updatedText);
 
-        const updatedText =
-          currentText.substring(0, start) + imageMarkdown + currentText.substring(end);
-        setText(updatedText);
+          if (onImageInserted) {
+            onImageInserted(`Imagen agregada al banco (${widthPercent}%): ${path}`);
+          }
+        })
+        .catch((err) => {
+          console.error("Error al procesar imagen del portapapeles:", err);
+        });
 
-        if (onImageInserted) {
-          onImageInserted(`Imagen agregada correctamente (${(blob.size / 1024).toFixed(1)} KB)`);
-        }
-      };
-      reader.readAsDataURL(blob);
       return true;
     }
   }

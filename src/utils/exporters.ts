@@ -1,3 +1,4 @@
+import { parseImageAlt } from "./imageSize";
 import { Quiz } from "../types/quiz";
 import { saveAs } from "file-saver";
 import {
@@ -522,7 +523,17 @@ function escapeLatex(str: string): string {
 
 function formatLatexBody(str: string): string {
   if (!str) return "";
-  return str.replace(/\n\n/g, "\\par\\vspace{4pt}\\noindent ");
+  // Reemplazar imágenes Markdown ![alt|50%](imagenes/archivo.png) por \includegraphics con escala
+  let formatted = str.replace(
+    /!\[(.*?)\]\(((?:imagenes\/|images\/|\.\/imagenes\/)[^)\s]+)\)/g,
+    (_, altRaw, path) => {
+      const { widthPercent } = parseImageAlt(altRaw);
+      const scale = (widthPercent / 100).toFixed(2);
+      const cleanPath = path.replace(/^\.\//, "");
+      return `\\begin{center}\\includegraphics[width=${scale}\\linewidth]{${cleanPath}}\\end{center}`;
+    }
+  );
+  return formatted.replace(/\n\n/g, "\\par\\vspace{4pt}\\noindent ");
 }
 
 function cleanWordText(str: string): string {

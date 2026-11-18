@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Quiz } from "../types/quiz";
 import { renderMarkdownWithMath } from "../utils/markdownRenderer";
 import {
   FileText,
   FileCode,
   Printer,
+  Globe,
   Shuffle,
   ChevronUp,
   ChevronDown,
@@ -13,7 +14,7 @@ import {
   Eye,
   EyeOff,
   Sparkles,
-  Grid,
+  Download,
 } from "lucide-react";
 
 interface QuizPanelProps {
@@ -27,6 +28,7 @@ interface QuizPanelProps {
   onExportPdf: () => void;
   onOpenLatexModal: (mode: "exam" | "solutions") => void;
   onExportWord: (mode: "exam" | "solutions") => void;
+  onOpenExportHtml: () => void;
 }
 
 export const QuizPanel: React.FC<QuizPanelProps> = ({
@@ -40,9 +42,23 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({
   onExportPdf,
   onOpenLatexModal,
   onExportWord,
+  onOpenExportHtml,
 }) => {
   const [showHeaderSettings, setShowHeaderSettings] = useState(false);
   const [previewMode, setPreviewMode] = useState<"exam" | "solutions">("exam");
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
+  const exportDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Cerrar dropdown al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (exportDropdownRef.current && !exportDropdownRef.current.contains(e.target as Node)) {
+        setIsExportMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const totalPoints = quiz.items.reduce((sum, item) => sum + (item.points || 0), 0);
   const optionLabels = ["A", "B", "C", "D", "E", "F"];
@@ -122,176 +138,192 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({
       {/* Editor desplegable del Encabezado */}
       {showHeaderSettings && (
         <div className="p-4 bg-dark-850 border-b border-dark-700 space-y-3 shrink-0">
-          <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
-            Configuración del Encabezado
+          <h3 className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+            Configuración del Encabezado del Examen
           </h3>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 text-xs">
             <div>
-              <label className="block text-[11px] text-slate-400 mb-1">Institución / Colegio</label>
+              <label className="text-slate-400 block mb-1">Institución:</label>
               <input
                 type="text"
                 value={quiz.header.institution}
                 onChange={(e) =>
                   onUpdateHeader({ ...quiz.header, institution: e.target.value })
                 }
-                className="w-full bg-dark-900 border border-dark-700 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500"
+                className="w-full bg-dark-900 border border-dark-700 rounded px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-brand-500"
               />
             </div>
             <div>
-              <label className="block text-[11px] text-slate-400 mb-1">Título de la Evaluación</label>
-              <input
-                type="text"
-                value={quiz.header.title}
-                onChange={(e) =>
-                  onUpdateHeader({ ...quiz.header, title: e.target.value })
-                }
-                className="w-full bg-dark-900 border border-dark-700 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500"
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] text-slate-400 mb-1">Curso / Asignatura</label>
+              <label className="text-slate-400 block mb-1">Curso / Asignatura:</label>
               <input
                 type="text"
                 value={quiz.header.course}
                 onChange={(e) =>
                   onUpdateHeader({ ...quiz.header, course: e.target.value })
                 }
-                className="w-full bg-dark-900 border border-dark-700 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500"
+                className="w-full bg-dark-900 border border-dark-700 rounded px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-brand-500"
               />
             </div>
             <div>
-              <label className="block text-[11px] text-slate-400 mb-1">Docente / Profesor</label>
+              <label className="text-slate-400 block mb-1">Título de la Evaluación:</label>
               <input
                 type="text"
-                value={quiz.header.teacher}
+                value={quiz.header.title}
+                onChange={(e) =>
+                  onUpdateHeader({ ...quiz.header, title: e.target.value })
+                }
+                className="w-full bg-dark-900 border border-dark-700 rounded px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-brand-500"
+              />
+            </div>
+            <div>
+              <label className="text-slate-400 block mb-1">Profesor(a) / Docente:</label>
+              <input
+                type="text"
+                value={quiz.header.teacher || ""}
                 onChange={(e) =>
                   onUpdateHeader({ ...quiz.header, teacher: e.target.value })
                 }
-                className="w-full bg-dark-900 border border-dark-700 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500"
+                className="w-full bg-dark-900 border border-dark-700 rounded px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-brand-500"
               />
             </div>
             <div className="col-span-2">
-              <label className="block text-[11px] text-slate-400 mb-1">Instrucciones Generales</label>
+              <label className="text-slate-400 block mb-1">Instrucciones Generales:</label>
               <textarea
                 rows={2}
                 value={quiz.header.instructions}
                 onChange={(e) =>
                   onUpdateHeader({ ...quiz.header, instructions: e.target.value })
                 }
-                className="w-full bg-dark-900 border border-dark-700 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500"
+                className="w-full bg-dark-900 border border-dark-700 rounded px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-brand-500"
               />
             </div>
-            <div className="col-span-2 flex items-center space-x-2 pt-1">
-              <input
-                type="checkbox"
-                id="showAnswerSheetCheck"
-                checked={quiz.header.showAnswerSheet !== false}
-                onChange={(e) =>
-                  onUpdateHeader({ ...quiz.header, showAnswerSheet: e.target.checked })
-                }
-                className="rounded bg-dark-900 border-dark-700 text-brand-500 focus:ring-0"
-              />
-              <label htmlFor="showAnswerSheetCheck" className="text-xs text-slate-300">
-                Incluir Hoja de Respuestas (burbujas estilo ICFES) arriba de las preguntas
+            <div className="col-span-2 flex items-center justify-between pt-1">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={quiz.header.showAnswerSheet}
+                  onChange={(e) =>
+                    onUpdateHeader({
+                      ...quiz.header,
+                      showAnswerSheet: e.target.checked,
+                    })
+                  }
+                  className="rounded bg-dark-900 border-dark-700 text-brand-500 focus:ring-brand-500/20"
+                />
+                <span className="text-slate-300 font-medium">
+                  Incluir Hoja de Respuestas compacta (Burbujas A, B, C, D)
+                </span>
               </label>
             </div>
           </div>
         </div>
       )}
 
-      {/* Contenedor central scrolleable con la previsualización fiel de la plantilla */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-5 print-container">
-        {/* BANDA SUPERIOR (Azul Marino y Dorado) */}
-        <div className="rounded-xl overflow-hidden shadow-md bg-dark-850 border border-dark-700">
-          <div className="h-3 bg-[#1F3A5F] w-full" />
-          <div className="h-1 bg-[#B08D57] w-full" />
-
-          {/* Encabezado del examen */}
-          <div className="p-6 space-y-4">
-            <div className="text-center space-y-1">
-              <h2 className="text-lg font-bold text-slate-100 uppercase tracking-tight">
-                {quiz.header.institution}
-              </h2>
-              <h3 className="text-base font-semibold text-brand-400">
-                {quiz.header.title}
-              </h3>
-              <p className="text-xs text-slate-400">
-                {quiz.header.course} &bull; Docente: {quiz.header.teacher} &bull; Fecha: {quiz.header.date}
-              </p>
+      {/* Vista Previa del Examen (Renderizado Real) */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 select-text">
+        {/* Encabezado formal del examen estilo examen impreso */}
+        <div className="border-2 border-[#1F3A5F]/60 dark:border-dark-700 rounded-xl p-5 bg-white/5 space-y-4">
+          <div className="text-center space-y-1 pb-3 border-b border-dark-700">
+            <h2 className="text-xs uppercase tracking-widest text-[#B08D57] font-semibold">
+              {quiz.header.institution}
+            </h2>
+            <h1 className="text-base font-bold text-slate-100">{quiz.header.title}</h1>
+            <div className="flex items-center justify-center space-x-4 text-xs text-slate-400 pt-0.5">
+              <span>
+                <strong>Asignatura:</strong> {quiz.header.course}
+              </span>
+              <span>&bull;</span>
+              <span>
+                <strong>Fecha:</strong> {quiz.header.date}
+              </span>
+              {quiz.header.teacher && (
+                <>
+                  <span>&bull;</span>
+                  <span>
+                    <strong>Docente:</strong> {quiz.header.teacher}
+                  </span>
+                </>
+              )}
             </div>
+          </div>
 
-            <div className="h-[1px] bg-[#1F3A5F]/60 w-full" />
-
-            {/* Estudiante y Grupo con línea punteada */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs text-slate-300 pt-1">
-              <div className="sm:col-span-2 flex items-baseline">
-                <span className="font-semibold text-slate-400 mr-2">Estudiante:</span>
-                <div className="flex-1 border-b border-dotted border-slate-600 h-4" />
-              </div>
-              <div className="flex items-baseline">
-                <span className="font-semibold text-slate-400 mr-2">Grupo:</span>
-                <div className="flex-1 border-b border-dotted border-slate-600 h-4" />
-              </div>
+          {/* Campos para que el estudiante complete */}
+          <div className="grid grid-cols-3 gap-3 text-xs pt-1">
+            <div className="border-b border-dashed border-dark-600 pb-1">
+              <span className="text-slate-400 font-medium">Estudiante: </span>
             </div>
+            <div className="border-b border-dashed border-dark-600 pb-1">
+              <span className="text-slate-400 font-medium">Grupo / Grado: </span>
+            </div>
+            <div className="border-b border-dashed border-dark-600 pb-1">
+              <span className="text-slate-400 font-medium">Calificación: </span>
+              <span className="text-slate-500 float-right font-mono">/ {totalPoints} pts</span>
+            </div>
+          </div>
 
-            {/* Caja de Instrucciones con borde izquierdo dorado */}
-            <div className="text-xs text-slate-300 italic bg-dark-900/60 p-3 rounded-lg border border-dark-700 border-l-4 border-l-[#B08D57]">
-              <strong className="text-brand-400 not-italic">Instrucciones: </strong>
+          {/* Instrucciones */}
+          {quiz.header.instructions && (
+            <div className="text-[11px] text-slate-400 leading-relaxed bg-dark-900/60 p-2.5 rounded border border-dark-750">
+              <strong className="text-slate-300">Instrucciones: </strong>
               {quiz.header.instructions}
             </div>
+          )}
 
-            {/* HOJA DE RESPUESTAS (Burbujas ICFES) */}
-            {quiz.header.showAnswerSheet !== false && mcQuestions.length > 0 && (
-              <div className="relative border border-[#1F3A5F] rounded-lg p-3 pt-5 bg-dark-900/40">
-                {/* Título de la caja */}
-                <div className="absolute -top-2.5 left-3 bg-[#1F3A5F] text-white text-[10px] font-bold px-2 py-0.5 rounded">
-                  HOJA DE RESPUESTAS
-                </div>
-
-                {/* Burbujas en columnas de 4 en 4 */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-2 text-xs">
-                  {mcQuestions.map(({ item, index }) => {
-                    const q = item.question;
-                    const correctIndex = q.options.findIndex((o) => o.isCorrect);
-
-                    return (
-                      <div key={item.instanceId} className="flex items-center space-x-1.5">
-                        <span className="w-4 text-right font-bold text-xs text-brand-400">
-                          {index + 1}
-                        </span>
-                        <div className="flex items-center space-x-1">
-                          {["A", "B", "C", "D"].map((letter, optIdx) => {
-                            const isThisCorrect = isSolutions && optIdx === correctIndex;
-                            return (
-                              <span
-                                key={letter}
-                                className={`w-5 h-5 rounded-full border flex items-center justify-center text-[10px] font-semibold transition-colors ${
-                                  isThisCorrect
-                                    ? "bg-emerald-600 border-emerald-500 text-white font-bold"
-                                    : "border-[#1F3A5F] text-slate-300 bg-dark-850"
-                                }`}
-                              >
-                                {letter}
-                              </span>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+          {/* Hoja de Respuestas (Si está habilitada y hay preguntas de opción múltiple) */}
+          {quiz.header.showAnswerSheet && mcQuestions.length > 0 && (
+            <div className="mt-4 pt-3 border-t border-dark-700">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  Hoja de Respuestas (Rellene la opción correcta)
+                </span>
+                <span className="text-[10px] text-slate-400">
+                  {mcQuestions.length} {mcQuestions.length === 1 ? "pregunta" : "preguntas"} de selección
+                </span>
               </div>
-            )}
-          </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2 bg-dark-900/90 p-3 rounded-lg border border-dark-750">
+                {mcQuestions.map(({ item, index }) => {
+                  const num = index + 1;
+                  const correctIdx = item.question.options.findIndex((o) => o.isCorrect);
+
+                  return (
+                    <div
+                      key={item.instanceId}
+                      className="flex items-center space-x-1.5 text-[11px] py-0.5 justify-center"
+                    >
+                      <span className="font-bold text-slate-300 w-4 text-right">
+                        {num}.
+                      </span>
+                      <div className="flex space-x-1">
+                        {item.question.options.map((_, optIdx) => {
+                          const isCorrect = isSolutions && optIdx === correctIdx;
+                          return (
+                            <span
+                              key={optIdx}
+                              className={`w-4 h-4 rounded-full border text-[9px] flex items-center justify-center font-bold select-none ${
+                                isCorrect
+                                  ? "bg-emerald-600 border-emerald-500 text-white shadow-sm"
+                                  : "border-dark-600 text-slate-400 bg-dark-800"
+                              }`}
+                            >
+                              {optionLabels[optIdx]}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Lista de Preguntas agregadas al examen */}
+        {/* Lista de Preguntas agregadas al Examen */}
         {quiz.items.length === 0 ? (
-          <div className="h-64 border-2 border-dashed border-dark-750 rounded-xl flex flex-col items-center justify-center text-center p-6 text-slate-500">
-            <FileText className="w-12 h-12 mb-3 stroke-1 text-slate-600" />
-            <p className="text-sm font-medium text-slate-300">Tu examen está vacío</p>
+          <div className="h-48 flex flex-col items-center justify-center text-center p-6 text-slate-500 border-2 border-dashed border-dark-750 rounded-xl">
+            <p className="text-sm font-medium text-slate-400">El examen está vacío</p>
             <p className="text-xs text-slate-500 mt-1 max-w-sm">
-              Selecciona preguntas del panel izquierdo usando el botón verde <strong>"+ Agregar"</strong> para construir tu evaluación aquí.
+              Selecciona preguntas del panel izquierdo haciendo clic en "+ Añadir" para armar tu evaluación.
             </p>
           </div>
         ) : (
@@ -303,51 +335,30 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({
             return (
               <div
                 key={item.instanceId}
-                className="group relative bg-dark-850 border border-dark-700 rounded-xl p-4 shadow-sm hover:border-dark-600 transition-all"
+                className="group relative bg-dark-850 border border-dark-750 hover:border-dark-600 rounded-xl p-5 transition-all shadow-sm"
               >
-                {/* Barra superior de la celda en el quiz */}
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-2.5">
-                    {/* Número en círculo azul estilo plantilla (\numpreg) */}
-                    <div className="w-6 h-6 rounded-full bg-[#1F3A5F] text-white flex items-center justify-center text-xs font-bold shadow-sm">
+                {/* Controles de orden y puntaje flotantes */}
+                <div className="flex items-center justify-between pb-3 mb-3 border-b border-dark-750">
+                  <div className="flex items-center space-x-2">
+                    <span className="w-6 h-6 rounded-full bg-brand-600/20 text-brand-400 font-bold text-xs flex items-center justify-center border border-brand-500/30">
                       {index + 1}
-                    </div>
-                    <span className="text-xs font-medium text-slate-300">
-                      {q.course} &bull; {q.topic}
                     </span>
-                    <span
-                      className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${
-                        isOpenType
-                          ? "bg-[#1F3A5F]/70 text-[#D8B480] border-[#B08D57]/50"
-                          : "bg-brand-950/70 text-brand-300 border-brand-700/50"
-                      }`}
-                    >
-                      {isOpenType ? "Pregunta Abierta" : "Opción Múltiple"}
+                    <span className="text-xs font-semibold text-slate-300">
+                      Pregunta #{index + 1}
+                    </span>
+                    <span className="text-[10px] text-slate-500 px-2 py-0.5 rounded bg-dark-800">
+                      {isOpenType ? "Respuesta Abierta" : "Opción Múltiple"}
                     </span>
                   </div>
 
-                  {/* Puntuación y botones de mover / quitar */}
                   <div className="flex items-center space-x-2">
-                    <div className="flex items-center space-x-1 bg-dark-900 border border-dark-700 rounded px-2 py-0.5 text-xs text-slate-300">
-                      <span>Pts:</span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.5"
-                        value={item.points}
-                        onChange={(e) =>
-                          onUpdatePoints(item.instanceId, parseFloat(e.target.value) || 0)
-                        }
-                        className="w-12 bg-transparent text-center font-bold text-brand-400 focus:outline-none"
-                      />
-                    </div>
-
-                    <div className="flex items-center space-x-0.5">
+                    {/* Reordenar */}
+                    <div className="flex items-center space-x-0.5 bg-dark-800 rounded border border-dark-700">
                       <button
                         onClick={() => onMoveItem(index, "up")}
                         disabled={index === 0}
                         title="Subir posición"
-                        className="p-1 text-slate-400 hover:text-white disabled:opacity-20 rounded hover:bg-dark-750"
+                        className="p-1 text-slate-400 hover:text-white disabled:opacity-30"
                       >
                         <ChevronUp className="w-3.5 h-3.5" />
                       </button>
@@ -355,47 +366,66 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({
                         onClick={() => onMoveItem(index, "down")}
                         disabled={index === quiz.items.length - 1}
                         title="Bajar posición"
-                        className="p-1 text-slate-400 hover:text-white disabled:opacity-20 rounded hover:bg-dark-750"
+                        className="p-1 text-slate-400 hover:text-white disabled:opacity-30"
                       >
                         <ChevronDown className="w-3.5 h-3.5" />
                       </button>
-                      <button
-                        onClick={() => onRemoveItem(item.instanceId)}
-                        title="Quitar de este examen"
-                        className="p-1 text-slate-400 hover:text-rose-400 rounded hover:bg-dark-750"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
                     </div>
+
+                    {/* Editor de puntaje */}
+                    <div className="flex items-center space-x-1 bg-dark-800 px-2 py-0.5 rounded border border-dark-700">
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        value={item.points || 1}
+                        onChange={(e) =>
+                          onUpdatePoints(item.instanceId, parseFloat(e.target.value) || 0)
+                        }
+                        className="w-10 bg-transparent text-xs text-right text-brand-400 font-semibold focus:outline-none"
+                      />
+                      <span className="text-[10px] text-slate-400">pts</span>
+                    </div>
+
+                    {/* Eliminar del examen */}
+                    <button
+                      onClick={() => onRemoveItem(item.instanceId)}
+                      title="Quitar del examen"
+                      className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-950/30 rounded transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
 
-                {/* Enunciado renderizado */}
+                {/* Enunciado con KaTeX */}
                 <div
-                  className="prose prose-invert prose-sm max-w-none text-slate-200 text-xs leading-relaxed mb-3 break-words [&>p]:mb-2 [&_img]:max-h-56 [&_img]:rounded-lg [&_img]:my-2 [&_img]:border [&_img]:border-dark-700"
+                  className="text-xs text-slate-200 leading-relaxed font-normal mb-4"
                   dangerouslySetInnerHTML={{ __html: renderedPrompt }}
                 />
 
-                {/* Opciones o Cuadro de respuesta abierta */}
+                {/* Si es tipo abierta: renderiza el cuadro de respuesta del estudiante */}
                 {isOpenType ? (
-                  /* Cuadro para respuesta abierta estilo plantilla */
                   <div
-                    style={{ minHeight: `${(q.openResponseHeight || 3.5) * 26}px` }}
-                    className="w-full bg-white/5 border border-slate-700 border-l-[3.5px] border-l-[#B08D57] rounded-md p-3 text-[11px] text-slate-500 italic flex items-start"
+                    style={{
+                      height: `${(q.openResponseHeight || 3.5) * 26}px`,
+                      minHeight: "70px",
+                    }}
+                    className="w-full bg-white/5 border border-dark-600 border-l-[3.5px] border-l-[#B08D57] rounded-lg p-2.5 text-[11px] text-slate-500 italic select-none"
                   >
-                    [Espacio asignado para procedimiento y respuesta escrita &bull; {q.openResponseHeight || 3.5} cm]
+                    [Espacio asignado para procedimiento y respuesta escrita del estudiante]
                   </div>
                 ) : (
-                  /* Rejilla de 2 columnas de opciones (A, B y C, D) como en la plantilla */
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  /* Opciones múltiples */
+                  <div className="space-y-2">
                     {q.options.map((opt, optIdx) => {
                       const renderedOpt = renderMarkdownWithMath(opt.text);
                       const highlightCorrect = isSolutions && opt.isCorrect;
 
                       return (
                         <div
-                          key={opt.id || optIdx}
-                          className={`flex items-start space-x-2 text-xs p-2.5 rounded-lg border transition-colors ${
+                          key={opt.id}
+                          className={`flex items-start space-x-2 text-xs p-2 rounded-lg border transition-colors ${
                             highlightCorrect
                               ? "bg-emerald-950/30 border-emerald-700 text-emerald-200 font-medium"
                               : "bg-dark-900/60 border-dark-750 text-slate-300"
@@ -457,7 +487,7 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({
         )}
       </div>
 
-      {/* Barra inferior: Resumen y Botones de Exportación */}
+      {/* Barra inferior: Resumen y Menú Desplegable de Exportación */}
       <div className="p-3 bg-dark-850 border-t border-dark-750 flex flex-wrap items-center justify-between gap-3 shrink-0">
         <div className="text-xs text-slate-300 flex items-center space-x-3">
           <span>
@@ -469,37 +499,93 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({
           </span>
         </div>
 
-        {/* Botones de Exportación */}
-        <div className="flex items-center space-x-2">
-          {/* Exportar a PDF / Imprimir */}
+        {/* Botón Desplegable Unificado de Exportación */}
+        <div className="relative" ref={exportDropdownRef}>
           <button
-            onClick={onExportPdf}
+            type="button"
             disabled={quiz.items.length === 0}
-            className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold text-slate-200 bg-dark-800 hover:bg-dark-700 border border-dark-700 hover:border-dark-600 rounded-md transition-all disabled:opacity-40"
+            onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
+            className="flex items-center space-x-2 px-4 py-2 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-500 rounded-lg transition-all shadow-sm hover:shadow-brand-500/20 active:scale-95 disabled:opacity-40"
           >
-            <Printer className="w-3.5 h-3.5 text-rose-400" />
-            <span>Imprimir / PDF</span>
+            <Download className="w-3.5 h-3.5" />
+            <span>Exportar Examen</span>
+            <ChevronDown className="w-3.5 h-3.5 ml-0.5" />
           </button>
 
-          {/* Ver / Exportar LaTeX */}
-          <button
-            onClick={() => onOpenLatexModal(previewMode)}
-            disabled={quiz.items.length === 0}
-            className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold text-slate-200 bg-dark-800 hover:bg-dark-700 border border-dark-700 hover:border-dark-600 rounded-md transition-all disabled:opacity-40"
-          >
-            <FileCode className="w-3.5 h-3.5 text-emerald-400" />
-            <span>LaTeX (.tex)</span>
-          </button>
+          {/* Menú Desplegable */}
+          {isExportMenuOpen && (
+            <div className="absolute right-0 bottom-full mb-2 w-64 bg-dark-850 border border-dark-700 rounded-xl shadow-2xl p-1.5 space-y-1 z-30 animate-in fade-in duration-100">
+              <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-dark-750">
+                Opciones de Exportación
+              </div>
 
-          {/* Exportar a Word */}
-          <button
-            onClick={() => onExportWord(previewMode)}
-            disabled={quiz.items.length === 0}
-            className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-500 rounded-md transition-all shadow hover:shadow-brand-500/20 disabled:opacity-40"
-          >
-            <FileText className="w-3.5 h-3.5" />
-            <span>Word (.docx)</span>
-          </button>
+              {/* 1. Imprimir / PDF */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsExportMenuOpen(false);
+                  onExportPdf();
+                }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-slate-200 hover:text-white hover:bg-dark-750 rounded-lg transition-colors text-left"
+              >
+                <Printer className="w-4 h-4 text-rose-400 shrink-0" />
+                <div>
+                  <div className="font-medium">Imprimir / PDF</div>
+                  <div className="text-[10px] text-slate-400">Impresión directa o guardar PDF</div>
+                </div>
+              </button>
+
+              {/* 2. LaTeX */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsExportMenuOpen(false);
+                  onOpenLatexModal(previewMode);
+                }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-slate-200 hover:text-white hover:bg-dark-750 rounded-lg transition-colors text-left"
+              >
+                <FileCode className="w-4 h-4 text-emerald-400 shrink-0" />
+                <div>
+                  <div className="font-medium">Código LaTeX (.tex)</div>
+                  <div className="text-[10px] text-slate-400">Ver código o descargar .tex</div>
+                </div>
+              </button>
+
+              {/* 3. Word */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsExportMenuOpen(false);
+                  onExportWord(previewMode);
+                }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-slate-200 hover:text-white hover:bg-dark-750 rounded-lg transition-colors text-left"
+              >
+                <FileText className="w-4 h-4 text-blue-400 shrink-0" />
+                <div>
+                  <div className="font-medium">Documento Word (.docx)</div>
+                  <div className="text-[10px] text-slate-400">Editable con tipografía institucional</div>
+                </div>
+              </button>
+
+              <div className="my-1 border-t border-dark-750" />
+
+              {/* 4. Cuestionario Web HTML5 */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsExportMenuOpen(false);
+                  onOpenExportHtml();
+                }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-indigo-300 hover:text-white hover:bg-indigo-950/40 rounded-lg transition-colors text-left"
+              >
+                <Globe className="w-4 h-4 text-indigo-400 shrink-0" />
+                <div>
+                  <div className="font-semibold text-indigo-300">Cuestionario Web (HTML5)</div>
+                  <div className="text-[10px] text-slate-400">App interactiva lista para estudiantes</div>
+                </div>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { Question } from "../types/quiz";
 import { QuestionCard } from "./QuestionCard";
-import { Search, Filter, X, Layers, ChevronDown } from "lucide-react";
+import { Search, Filter, X, Layers, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface BankPanelProps {
   questions: Question[];
@@ -9,6 +9,7 @@ interface BankPanelProps {
   onEditQuestion: (q: Question) => void;
   onDeleteQuestion: (id: string) => void;
   quizQuestionIds: Set<string>;
+  pageSize: number;
 }
 
 export const BankPanel: React.FC<BankPanelProps> = ({
@@ -17,12 +18,14 @@ export const BankPanel: React.FC<BankPanelProps> = ({
   onEditQuestion,
   onDeleteQuestion,
   quizQuestionIds,
+  pageSize = 50,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCourse, setSelectedCourse] = useState("all");
   const [selectedTopic, setSelectedTopic] = useState("all");
   const [selectedDifficulty, setSelectedDifficulty] = useState("all");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Listas únicas de cursos y temas para los filtros
   const courses = useMemo(() => {
@@ -47,6 +50,7 @@ export const BankPanel: React.FC<BankPanelProps> = ({
     setSelectedTags((prev) =>
       prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
     );
+    setCurrentPage(1);
   };
 
   const filteredQuestions = useMemo(() => {
@@ -85,6 +89,7 @@ export const BankPanel: React.FC<BankPanelProps> = ({
     setSelectedTopic("all");
     setSelectedDifficulty("all");
     setSelectedTags([]);
+    setCurrentPage(1);
   };
 
   const hasActiveFilters =
@@ -93,6 +98,15 @@ export const BankPanel: React.FC<BankPanelProps> = ({
     selectedTopic !== "all" ||
     selectedDifficulty !== "all" ||
     selectedTags.length > 0;
+
+  // Paginación (20, 50, 100)
+  const totalPages = Math.max(1, Math.ceil(filteredQuestions.length / pageSize));
+  const validCurrentPage = Math.min(currentPage, totalPages);
+
+  const paginatedQuestions = useMemo(() => {
+    const start = (validCurrentPage - 1) * pageSize;
+    return filteredQuestions.slice(start, start + pageSize);
+  }, [filteredQuestions, validCurrentPage, pageSize]);
 
   return (
     <div className="h-full flex flex-col bg-dark-900 border-r border-dark-750 overflow-hidden">
@@ -104,12 +118,18 @@ export const BankPanel: React.FC<BankPanelProps> = ({
             type="text"
             placeholder="Buscar por fórmula, enunciado, tema o etiqueta..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full bg-dark-900 border border-dark-700 focus:border-brand-500 rounded-lg pl-9 pr-8 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none transition-colors"
           />
           {searchTerm && (
             <button
-              onClick={() => setSearchTerm("")}
+              onClick={() => {
+                setSearchTerm("");
+                setCurrentPage(1);
+              }}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
             >
               <X className="w-3.5 h-3.5" />
@@ -117,7 +137,7 @@ export const BankPanel: React.FC<BankPanelProps> = ({
           )}
         </div>
 
-        {/* Desplegables de filtros con diseño moderno coherente */}
+        {/* Desplegables de filtros */}
         <div className="grid grid-cols-3 gap-2">
           {/* Selector de Cursos */}
           <div className="relative">
@@ -126,6 +146,7 @@ export const BankPanel: React.FC<BankPanelProps> = ({
               onChange={(e) => {
                 setSelectedCourse(e.target.value);
                 setSelectedTopic("all");
+                setCurrentPage(1);
               }}
               style={{ backgroundColor: "#101622", color: "#e2e8f0" }}
               className="w-full appearance-none bg-dark-850 hover:bg-dark-800 border border-dark-700 hover:border-dark-600 rounded-lg pl-2.5 pr-7 py-1.5 text-xs font-medium focus:outline-none focus:border-brand-500 transition-colors cursor-pointer truncate"
@@ -146,7 +167,10 @@ export const BankPanel: React.FC<BankPanelProps> = ({
           <div className="relative">
             <select
               value={selectedTopic}
-              onChange={(e) => setSelectedTopic(e.target.value)}
+              onChange={(e) => {
+                setSelectedTopic(e.target.value);
+                setCurrentPage(1);
+              }}
               style={{ backgroundColor: "#101622", color: "#e2e8f0" }}
               className="w-full appearance-none bg-dark-850 hover:bg-dark-800 border border-dark-700 hover:border-dark-600 rounded-lg pl-2.5 pr-7 py-1.5 text-xs font-medium focus:outline-none focus:border-brand-500 transition-colors cursor-pointer truncate"
             >
@@ -166,7 +190,10 @@ export const BankPanel: React.FC<BankPanelProps> = ({
           <div className="relative">
             <select
               value={selectedDifficulty}
-              onChange={(e) => setSelectedDifficulty(e.target.value)}
+              onChange={(e) => {
+                setSelectedDifficulty(e.target.value);
+                setCurrentPage(1);
+              }}
               style={{ backgroundColor: "#101622", color: "#e2e8f0" }}
               className="w-full appearance-none bg-dark-850 hover:bg-dark-800 border border-dark-700 hover:border-dark-600 rounded-lg pl-2.5 pr-7 py-1.5 text-xs font-medium focus:outline-none focus:border-brand-500 transition-colors cursor-pointer truncate"
             >
@@ -212,7 +239,7 @@ export const BankPanel: React.FC<BankPanelProps> = ({
           </div>
         )}
 
-        {/* Contador y botón de limpiar */}
+        {/* Contador, paginación y botón de limpiar */}
         <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
           <span>
             Mostrando <strong>{filteredQuestions.length}</strong> de{" "}
@@ -229,9 +256,9 @@ export const BankPanel: React.FC<BankPanelProps> = ({
         </div>
       </div>
 
-      {/* Lista scrolleable de Celdas del Banco */}
+      {/* Lista scrolleable de Celdas del Banco con Paginación */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3.5">
-        {filteredQuestions.length === 0 ? (
+        {paginatedQuestions.length === 0 ? (
           <div className="h-64 flex flex-col items-center justify-center text-center p-6 text-slate-500">
             <Layers className="w-10 h-10 mb-2 stroke-1 opacity-50" />
             <p className="text-sm font-medium text-slate-400">No se encontraron preguntas</p>
@@ -240,7 +267,7 @@ export const BankPanel: React.FC<BankPanelProps> = ({
             </p>
           </div>
         ) : (
-          filteredQuestions.map((q) => (
+          paginatedQuestions.map((q) => (
             <QuestionCard
               key={q.id}
               question={q}
@@ -252,6 +279,38 @@ export const BankPanel: React.FC<BankPanelProps> = ({
           ))
         )}
       </div>
+
+      {/* Barra de Paginación Inferior (si hay más de 1 página) */}
+      {totalPages > 1 && (
+        <div className="p-2.5 bg-dark-850 border-t border-dark-750 flex items-center justify-between text-xs text-slate-300 shrink-0">
+          <span className="text-[11px] text-slate-400">
+            Página <strong>{validCurrentPage}</strong> de <strong>{totalPages}</strong> ({pageSize}/pág)
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              disabled={validCurrentPage <= 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              className="p-1 text-slate-400 hover:text-white disabled:opacity-30 disabled:pointer-events-none rounded hover:bg-dark-800 transition-colors"
+              title="Página anterior"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span className="px-2 py-0.5 rounded bg-dark-800 border border-dark-700 text-brand-400 font-semibold text-xs">
+              {validCurrentPage}
+            </span>
+            <button
+              type="button"
+              disabled={validCurrentPage >= totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              className="p-1 text-slate-400 hover:text-white disabled:opacity-30 disabled:pointer-events-none rounded hover:bg-dark-800 transition-colors"
+              title="Página siguiente"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

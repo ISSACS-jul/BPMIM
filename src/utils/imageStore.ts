@@ -1,11 +1,11 @@
 /**
- * Gestor de almacenamiento permanente para imágenes.
- * - Carga rápida al inicio: solo registra índice de nombres
- * - Cuando las imágenes se leen (en background), notifica a los componentes
+ * Gestor de almacenamiento permanente para imágenes en BPMIM.
+ * - Carga rápida al inicio
  * - Almacena en disco nativo (Tauri) + fallback IndexedDB
+ * - Permite eliminar imágenes definitivamente tanto de memoria, IndexedDB como de disco.
  */
 
-const DB_NAME = "BancoPreguntasImagesDB";
+const DB_NAME = "BPMIM_ImagesDB_v1";
 const STORE_NAME = "images";
 const DB_VERSION = 1;
 
@@ -66,38 +66,36 @@ function cacheImage(name: string, dataUrl: string): void {
   memoryCache.set(`images/${clean}`, dataUrl);
 }
 
+function uncacheImage(name: string): void {
+  const clean = normalizeImageName(name);
+  memoryCache.delete(clean);
+  memoryCache.delete(`imagenes/${clean}`);
+  memoryCache.delete(`images/${clean}`);
+}
+
 /**
- * Inicializa el store de imágenes en background — NO bloquea el render.
- * Carga imágenes desde disco Tauri y/o IndexedDB, luego notifica a los componentes.
+ * Inicializa el store de imágenes en background.
  */
 export async function initImageStore(): Promise<void> {
   let loaded = 0;
 
-  // 1. Cargar desde disco nativo (Tauri) — batch en chunks para no bloquear UI
+  // 1. Cargar desde disco nativo (Tauri)
   if (isTauriEnv()) {
     try {
       const { invoke } = await import("@tauri-apps/api/core");
       const diskRecords = await invoke<{ name: string; data: string }[]>("load_all_disk_images");
       if (diskRecords && diskRecords.length > 0) {
-        // Cargar en chunks de 5 para mantener UI responsiva
-        const CHUNK = 5;
-        for (let i = 0; i < diskRecords.length; i += CHUNK) {
-          const chunk = diskRecords.slice(i, i + CHUNK);
-          chunk.forEach((rec) => {
-            cacheImage(rec.name, rec.data);
-            loaded++;
-          });
-          // Notificar después de cada chunk y ceder control al browser
-          notifyListeners();
-          await new Promise<void>((r) => setTimeout(r, 0));
-        }
+        diskRecords.forEach((rec) => {
+          cacheImage(rec.name, rec.data);
+          loaded++;
+        });
       }
     } catch (err) {
       console.warn("No se pudieron cargar imágenes desde disco Tauri:", err);
     }
   }
 
-  // 2. Fallback / merge con IndexedDB
+  // 2. Cargar desde IndexedDB
   try {
     const db = await openDB();
     const tx = db.transaction(STORE_NAME, "readonly");
@@ -108,7 +106,6 @@ export async function initImageStore(): Promise<void> {
       request.onsuccess = () => {
         const records: { name: string; data: string }[] = request.result || [];
         records.forEach((rec) => {
-          // No sobreescribir lo que ya cargamos desde disco Tauri
           const clean = normalizeImageName(rec.name);
           if (!memoryCache.has(clean)) {
             cacheImage(rec.name, rec.data);
@@ -159,6 +156,34 @@ export async function saveImage(name: string, dataUrl: string): Promise<string> 
   return relativePath;
 }
 
+/**
+ * Elimina una imagen definitivamente (disco Tauri, IndexedDB y memoria).
+ */
+export async function deleteImage(name: string): Promise<void> {
+  const cleanName = normalizeImageName(name);
+  uncacheImage(cleanName);
+
+  if (isTauriEnv()) {
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("delete_disk_image", { name: cleanName });
+    } catch (err) {
+      console.warn("Error eliminando imagen de disco Tauri:", err);
+    }
+  }
+
+  try {
+    const db = await openDB();
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    tx.objectStore(STORE_NAME).delete(cleanName);
+    await new Promise<void>((r) => { tx.oncomplete = () => r(); tx.onerror = () => r(); });
+  } catch (err) {
+    console.warn("Error eliminando de IndexedDB:", err);
+  }
+
+  notifyListeners();
+}
+
 export function getImageSync(path: string): string | undefined {
   const clean = normalizeImageName(path);
   return memoryCache.get(clean) || memoryCache.get(path);
@@ -178,6 +203,31 @@ export async function saveMultipleImages(images: { name: string; dataUrl: string
   for (const img of images) {
     await saveImage(img.name, img.dataUrl);
   }
+}
+
+export async function getDataFolderPath(): Promise<string> {
+  if (isTauriEnv()) {
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      return await invoke<string>("get_data_folder_path");
+    } catch (err) {
+      console.warn("Error obteniendo ruta:", err);
+    }
+  }
+  return "Navegador web (Almacenamiento IndexedDB local)";
+}
+
+export async function openDataFolderInOS(): Promise<boolean> {
+  if (isTauriEnv()) {
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("open_data_folder");
+      return true;
+    } catch (err) {
+      console.warn("Error abriendo carpeta:", err);
+    }
+  }
+  return false;
 }
 
 export function fileToDataUrl(file: Blob): Promise<string> {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useReducer } from "react";
 import { Question, Quiz } from "./types/quiz";
 import { initialQuestions } from "./data/sampleQuestions";
 import { Header } from "./components/Header";
@@ -8,13 +8,64 @@ import { QuestionModal } from "./components/QuestionModal";
 import { LatexModal } from "./components/LatexModal";
 import { BackupModal } from "./components/BackupModal";
 import { ImportModal } from "./components/ImportModal";
+import { ExportHtmlModal } from "./components/ExportHtmlModal";
+import { SettingsModal } from "./components/SettingsModal";
 import { exportToWord, exportToPdf } from "./utils/exporters";
-import { saveAs } from "file-saver";
+import { initImageStore, onImageStoreUpdate, offImageStoreUpdate } from "./utils/imageStore";
 
 const STORAGE_KEY_BANK = "banco_preguntas_data_v2";
 const STORAGE_KEY_QUIZ = "banco_preguntas_quiz_v2";
+const STORAGE_KEY_ZOOM = "bpmim_zoom_level_v1";
+const STORAGE_KEY_PAGE_SIZE = "bpmim_bank_page_size_v1";
 
 export function App() {
+  // Inicializar almacén local de imágenes (disco nativo Tauri + IndexedDB)
+  useEffect(() => {
+    initImageStore();
+  }, []);
+
+  // Control reactivo de actualizaciones de imágenes para re-renderizado
+  const [, forceUpdateImages] = useReducer((x: number) => x + 1, 0);
+  useEffect(() => {
+    onImageStoreUpdate(forceUpdateImages);
+    return () => offImageStoreUpdate(forceUpdateImages);
+  }, []);
+
+  // Control de escala y tamaño de interfaz / letra
+  const [zoomLevel, setZoomLevel] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_ZOOM);
+      if (saved) return Number(saved) || 100;
+    } catch {}
+    return 100;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_ZOOM, zoomLevel.toString());
+      document.documentElement.style.fontSize = `${(zoomLevel / 100) * 16}px`;
+    } catch (e) {
+      console.error("Error guardando zoom:", e);
+    }
+  }, [zoomLevel]);
+
+  // Preguntas por página (20, 50, 100)
+  const [pageSize, setPageSize] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_PAGE_SIZE);
+      if (saved && [20, 50, 100].includes(Number(saved))) return Number(saved);
+    } catch {}
+    return 50;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_PAGE_SIZE, pageSize.toString());
+    } catch (e) {
+      console.error("Error guardando pageSize:", e);
+    }
+  }, [pageSize]);
+
   // 1. Estado del Banco de Preguntas
   const [questions, setQuestions] = useState<Question[]>(() => {
     try {
@@ -64,6 +115,8 @@ export function App() {
   const [isLatexModalOpen, setIsLatexModalOpen] = useState(false);
   const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isExportHtmlModalOpen, setIsExportHtmlModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
   // 4. Ancho del panel izquierdo (split screen redimensionable)
   const [leftWidthPercent, setLeftWidthPercent] = useState<number>(48);
@@ -123,7 +176,6 @@ export function App() {
       return [newOrUpdated, ...prev];
     });
 
-    // Actualizar también en el quiz si ya estaba agregada
     setQuiz((prevQuiz) => ({
       ...prevQuiz,
       items: prevQuiz.items.map((it) =>
@@ -133,22 +185,32 @@ export function App() {
   };
 
   const handleDeleteQuestion = (id: string) => {
-    if (window.confirm("¿Seguro que deseas eliminar esta pregunta del banco?")) {
+    if (confirm("¿Estás seguro de eliminar esta pregunta del banco?")) {
       setQuestions((prev) => prev.filter((q) => q.id !== id));
-      setQuiz((prevQuiz) => ({
-        ...prevQuiz,
-        items: prevQuiz.items.filter((it) => it.question.id !== id),
+      setQuiz((prev) => ({
+        ...prev,
+        items: prev.items.filter((it) => it.question.id !== id),
       }));
     }
   };
 
-  // Operaciones sobre el Quiz / Constructor
-  const handleAddToQuiz = (q: Question) => {
+  // Operaciones sobre el Quiz
+  const handleAddToQuiz = (question: Question) => {
+    const alreadyInQuiz = quiz.items.some((it) => it.question.id === question.id);
+    if (alreadyInQuiz) {
+      setQuiz((prev) => ({
+        ...prev,
+        items: prev.items.filter((it) => it.question.id !== question.id),
+      }));
+      return;
+    }
+
     const newItem = {
-      instanceId: `inst-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-      question: q,
+      instanceId: `item-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      question,
       points: 1.0,
     };
+
     setQuiz((prev) => ({
       ...prev,
       items: [...prev.items, newItem],
@@ -204,20 +266,11 @@ export function App() {
     }));
   };
 
-  // Respaldo e Importación JSON
-  const handleExportBank = () => {
-    const dataStr = JSON.stringify(questions, null, 2);
-    const blob = new Blob([dataStr], { type: "application/json" });
-    const filename = `Banco_Preguntas_Respaldo_${new Date().toISOString().slice(0, 10)}.json`;
-    saveAs(blob, filename);
-  };
-
   // Respaldo e Importación de Banco
   const handleImportQuestions = (imported: Question[], mode: "append" | "replace") => {
     if (mode === "replace") {
       setQuestions(imported);
     } else {
-      // Agregar sin duplicar por ID
       setQuestions((prev) => {
         const existingIds = new Set(prev.map((q) => q.id));
         const newOnes = imported.filter((q) => !existingIds.has(q.id));
@@ -237,8 +290,7 @@ export function App() {
           setEditingQuestion(null);
           setIsModalOpen(true);
         }}
-        onExportBank={() => setIsBackupModalOpen(true)}
-        onOpenImportModal={() => setIsImportModalOpen(true)}
+        onOpenSettings={() => setIsSettingsModalOpen(true)}
       />
 
       {/* Pantalla Dividida en Vertical (Split Screen) */}
@@ -257,6 +309,7 @@ export function App() {
             }}
             onDeleteQuestion={handleDeleteQuestion}
             quizQuestionIds={quizQuestionIds}
+            pageSize={pageSize}
           />
         </div>
 
@@ -287,6 +340,7 @@ export function App() {
             onExportPdf={exportToPdf}
             onOpenLatexModal={() => setIsLatexModalOpen(true)}
             onExportWord={(mode) => exportToWord(quiz, mode)}
+            onOpenExportHtml={() => setIsExportHtmlModalOpen(true)}
           />
         </div>
       </div>
@@ -309,6 +363,19 @@ export function App() {
         quiz={quiz}
       />
 
+      {/* Modal de Opciones y Configuración (Centralizado) */}
+      <SettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        questions={questions}
+        zoomLevel={zoomLevel}
+        onZoomChange={setZoomLevel}
+        pageSize={pageSize}
+        onPageSizeChange={setPageSize}
+        onOpenImport={() => setIsImportModalOpen(true)}
+        onOpenExport={() => setIsBackupModalOpen(true)}
+      />
+
       {/* Modal para Respaldar el Banco (Descargar o Copiar JSON) */}
       <BackupModal
         isOpen={isBackupModalOpen}
@@ -321,6 +388,13 @@ export function App() {
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
         onImport={handleImportQuestions}
+      />
+
+      {/* Modal para Exportar Cuestionario Web HTML5 */}
+      <ExportHtmlModal
+        isOpen={isExportHtmlModalOpen}
+        onClose={() => setIsExportHtmlModalOpen(false)}
+        quiz={quiz}
       />
     </div>
   );
