@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     port: 1420,
     strictPort: true,
-    host: "0.0.0.0", // Permitir acceso desde fuera del contenedor
+    host: true, // Permitir acceso desde fuera del contenedor
     watch: {
       usePolling: true, // Para soporte de hot-reload con volúmenes montados en Docker
     },

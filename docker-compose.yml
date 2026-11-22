@@ -14,8 +14,8 @@ services:
       - DISPLAY=${DISPLAY:-:0}
     ports:
       # Puerto para el servidor de desarrollo Vite/Tauri
-      - "1420:1420"
-      - "5173:5173"
+      - "127.0.0.1:1420:1420"
+      - "127.0.0.1:5173:5173"
     stdin_open: true
     tty: true
     command: sleep infinity

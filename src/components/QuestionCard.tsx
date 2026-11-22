@@ -22,106 +22,158 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
     return renderMarkdownWithMath(question.prompt);
   }, [question.prompt]);
 
-  const difficultyColors = {
-    Fácil: "text-emerald-400 bg-emerald-950/40 border-emerald-800/60",
-    Media: "text-amber-400 bg-amber-950/40 border-amber-800/60",
-    Difícil: "text-rose-400 bg-rose-950/40 border-rose-800/60",
+  const isOpenType = question.type === "open";
+  const optionLabels = ["A", "B", "C", "D", "E", "F"];
+
+  // Difficulty style map (CLMIM-style badges)
+  const diffStyle: Record<string, React.CSSProperties> = {
+    Fácil:   { background: "rgba(16,185,129,0.12)",  color: "#6ee7b7", border: "1px solid rgba(16,185,129,0.3)" },
+    Media:   { background: "rgba(245,158,11,0.12)",  color: "#fcd34d", border: "1px solid rgba(245,158,11,0.3)" },
+    Difícil: { background: "rgba(244,63,94,0.12)",   color: "#fda4af", border: "1px solid rgba(244,63,94,0.3)"  },
   };
 
-  const optionLabels = ["A", "B", "C", "D", "E", "F"];
-  const isOpenType = question.type === "open";
-
   return (
-    <div className="group relative bg-dark-850 hover:bg-dark-800/90 border border-dark-700 hover:border-dark-600 rounded-xl p-4 transition-all duration-200 shadow-sm flex flex-col justify-between">
-      {/* Cabecera de la celda: Metadatos y etiquetas */}
-      <div>
-        <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
-          <div className="flex flex-wrap items-center gap-1.5">
-            {/* Tipo de pregunta badge */}
-            <span
-              className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border flex items-center gap-1 ${
-                isOpenType
-                  ? "bg-[#1F3A5F]/70 text-[#D8B480] border-[#B08D57]/50"
-                  : "bg-brand-950/70 text-brand-300 border-brand-700/50"
-              }`}
-            >
-              {isOpenType ? <Square className="w-2.5 h-2.5" /> : <CheckSquare className="w-2.5 h-2.5" />}
-              {isOpenType ? "Abierta" : "Opción Múltiple"}
-            </span>
+    <div
+      className="group relative cell-appear flex flex-col justify-between rounded-xl transition-all duration-200"
+      style={{
+        background: "#111827",
+        border: "1px solid #1e2a3e",
+        borderLeft: "3px solid #243048",
+        padding: "0",
+        overflow: "hidden",
+      }}
+      onMouseEnter={e => {
+        (e.currentTarget as HTMLElement).style.borderLeftColor = "#3b82f6";
+        (e.currentTarget as HTMLElement).style.boxShadow = "0 0 0 1px rgba(59,130,246,0.1), 0 4px 16px rgba(0,0,0,0.4)";
+      }}
+      onMouseLeave={e => {
+        (e.currentTarget as HTMLElement).style.borderLeftColor = "#243048";
+        (e.currentTarget as HTMLElement).style.boxShadow = "none";
+      }}
+    >
+      {/* ── Cell Header ── */}
+      <div
+        className="flex flex-wrap items-center justify-between gap-2 px-3 py-2"
+        style={{ background: "#0d1117", borderBottom: "1px solid #1e2a3e" }}
+      >
+        <div className="flex flex-wrap items-center gap-1.5">
+          {/* Tipo badge */}
+          <span
+            className="text-[10px] font-semibold px-2 py-0.5 rounded-md flex items-center gap-1 font-mono"
+            style={
+              isOpenType
+                ? { background: "rgba(245,158,11,0.12)", color: "#fcd34d", border: "1px solid rgba(245,158,11,0.3)" }
+                : { background: "rgba(99,102,241,0.15)", color: "#a5b4fc", border: "1px solid rgba(99,102,241,0.3)" }
+            }
+          >
+            {isOpenType ? <Square className="w-2.5 h-2.5" /> : <CheckSquare className="w-2.5 h-2.5" />}
+            {isOpenType ? "Abierta" : "Opción Múltiple"}
+          </span>
 
-            <span className="text-[11px] font-semibold text-brand-400 bg-brand-950/50 border border-brand-800/50 px-2 py-0.5 rounded-md">
-              {question.course}
-            </span>
-            <span className="text-[11px] font-medium text-slate-300 bg-dark-700/80 px-2 py-0.5 rounded-md">
-              {question.topic}
-            </span>
-            {question.subtopic && (
-              <span className="text-[11px] text-slate-400 bg-dark-800 px-1.5 py-0.5 rounded border border-dark-700">
-                {question.subtopic}
-              </span>
-            )}
-            <span
-              className={`text-[10px] font-medium border px-1.5 py-0.5 rounded ${
-                difficultyColors[question.difficulty] || ""
-              }`}
-            >
-              {question.difficulty}
-            </span>
-          </div>
+          {/* Curso */}
+          <span
+            className="text-[11px] font-semibold px-2 py-0.5 rounded-md"
+            style={{ background: "rgba(59,130,246,0.12)", color: "#60a5fa", border: "1px solid rgba(59,130,246,0.25)" }}
+          >
+            {question.course}
+          </span>
 
-          {/* Botones de acción de la celda */}
-          <div className="flex items-center space-x-1 opacity-80 group-hover:opacity-100 transition-opacity">
-            {onEdit && (
-              <button
-                onClick={onEdit}
-                title="Editar pregunta"
-                className="p-1 text-slate-400 hover:text-slate-200 hover:bg-dark-700 rounded transition-colors"
-              >
-                <Edit2 className="w-3.5 h-3.5" />
-              </button>
-            )}
-            {onDelete && (
-              <button
-                onClick={onDelete}
-                title="Eliminar pregunta del banco"
-                className="p-1 text-slate-400 hover:text-rose-400 hover:bg-dark-700 rounded transition-colors"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
+          {/* Tema */}
+          <span
+            className="text-[11px] font-medium px-2 py-0.5 rounded-md"
+            style={{ background: "#161e2e", color: "#cbd5e1", border: "1px solid #1e2a3e" }}
+          >
+            {question.topic}
+          </span>
+
+          {/* Subtema */}
+          {question.subtopic && (
+            <span
+              className="text-[11px] px-1.5 py-0.5 rounded"
+              style={{ color: "#94a3b8", background: "#0d1117", border: "1px solid #1e2a3e" }}
+            >
+              {question.subtopic}
+            </span>
+          )}
+
+          {/* Dificultad */}
+          <span
+            className="text-[10px] font-medium px-1.5 py-0.5 rounded"
+            style={diffStyle[question.difficulty] || {}}
+          >
+            {question.difficulty}
+          </span>
         </div>
 
-        {/* Enunciado renderizado con LaTeX y Markdown */}
+        {/* Acciones (edit / delete) */}
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {onEdit && (
+            <button
+              onClick={onEdit}
+              title="Editar pregunta"
+              className="p-1.5 rounded-md transition-colors"
+              style={{ color: "#64748b" }}
+              onMouseEnter={e => (e.currentTarget.style.color = "#60a5fa")}
+              onMouseLeave={e => (e.currentTarget.style.color = "#64748b")}
+            >
+              <Edit2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={onDelete}
+              title="Eliminar pregunta"
+              className="p-1.5 rounded-md transition-colors"
+              style={{ color: "#64748b" }}
+              onMouseEnter={e => (e.currentTarget.style.color = "#f43f5e")}
+              onMouseLeave={e => (e.currentTarget.style.color = "#64748b")}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ── Cell Body ── */}
+      <div className="px-4 pt-3 pb-2">
+        {/* Enunciado con LaTeX */}
         <div
-          className="prose prose-invert prose-sm max-w-none text-slate-200 text-xs leading-relaxed mb-3 break-words [&>p]:mb-2 [&_img]:max-h-56 [&_img]:rounded-lg [&_img]:my-2 [&_img]:border [&_img]:border-dark-700"
+          className="prose prose-invert prose-sm max-w-none text-xs leading-relaxed mb-3 break-words [&>p]:mb-2 [&_img]:max-h-56 [&_img]:rounded-lg [&_img]:my-2 [&_img]:border [&_img]:border-dark-700"
+          style={{ color: "#e2e8f0" }}
           dangerouslySetInnerHTML={{ __html: renderedPrompt }}
         />
 
-        {/* Visualización según el tipo de celda */}
+        {/* Opciones / Respuesta abierta */}
         {isOpenType ? (
-          /* Cuadro de Respuesta Abierta */
-          <div className="mb-3 p-3 bg-dark-900/80 border border-slate-700 border-l-[3.5px] border-l-[#B08D57] rounded-md text-[11px] text-slate-400 italic">
+          <div
+            className="mb-3 p-3 rounded-md text-[11px] italic"
+            style={{
+              background: "#0d1117",
+              borderLeft: "3px solid #f59e0b",
+              border: "1px solid #1e2a3e",
+              borderLeftWidth: "3px",
+              color: "#94a3b8",
+            }}
+          >
             [Espacio para respuesta escrita del estudiante: {question.openResponseHeight || 3.5} cm]
           </div>
         ) : (
-          /* Opciones de respuesta */
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mb-3">
             {question.options.map((opt, i) => {
               const renderedOpt = renderMarkdownWithMath(opt.text);
               return (
                 <div
                   key={opt.id || i}
-                  className={`flex items-start space-x-2 text-xs p-2 rounded-lg border transition-colors ${
+                  className="flex items-start gap-2 text-xs p-2 rounded-lg transition-colors"
+                  style={
                     opt.isCorrect
-                      ? "bg-emerald-950/20 border-emerald-800/40 text-emerald-200"
-                      : "bg-dark-900/60 border-dark-750 text-slate-300"
-                  }`}
+                      ? { background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.25)", color: "#6ee7b7" }
+                      : { background: "#0d1117", border: "1px solid #1e2a3e", color: "#cbd5e1" }
+                  }
                 >
                   <span
-                    className={`font-semibold shrink-0 text-[11px] px-1 rounded ${
-                      opt.isCorrect ? "text-emerald-400 bg-emerald-950/80" : "text-slate-400"
-                    }`}
+                    className="font-bold shrink-0 text-[11px] px-1 rounded font-mono"
+                    style={opt.isCorrect ? { color: "#10b981" } : { color: "#64748b" }}
                   >
                     {optionLabels[i]}.
                   </span>
@@ -130,7 +182,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                     dangerouslySetInnerHTML={{ __html: renderedOpt }}
                   />
                   {opt.isCorrect && (
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: "#10b981" }} />
                   )}
                 </div>
               );
@@ -139,13 +191,18 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
         )}
       </div>
 
-      {/* Pie de la tarjeta: Tags y botón de añadir al quiz */}
-      <div className="pt-2 border-t border-dark-750 flex items-center justify-between gap-2">
+      {/* ── Cell Footer ── */}
+      <div
+        className="px-3 py-2 flex items-center justify-between gap-2"
+        style={{ borderTop: "1px solid #1e2a3e", background: "#0d1117" }}
+      >
+        {/* Tags */}
         <div className="flex flex-wrap items-center gap-1 overflow-hidden">
           {question.tags.map((t, idx) => (
             <span
               key={idx}
-              className="text-[10px] text-slate-400 bg-dark-800 px-1.5 py-0.5 rounded flex items-center gap-1"
+              className="text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1 font-mono"
+              style={{ color: "#64748b", background: "#161e2e", border: "1px solid #1e2a3e" }}
             >
               <Tag className="w-2.5 h-2.5 opacity-60" />
               {t}
@@ -153,15 +210,17 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
           ))}
         </div>
 
+        {/* Botón Agregar */}
         {onAddToQuiz && (
           <button
             onClick={onAddToQuiz}
             disabled={isSelectedInQuiz}
-            className={`flex items-center space-x-1.5 px-3 py-1 rounded-md text-xs font-semibold transition-all shrink-0 ${
+            className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold transition-all shrink-0 active:scale-95"
+            style={
               isSelectedInQuiz
-                ? "bg-dark-700 text-slate-400 cursor-not-allowed"
-                : "bg-brand-600 hover:bg-brand-500 text-white shadow hover:shadow-brand-500/20 active:scale-95"
-            }`}
+                ? { background: "#161e2e", color: "#64748b", cursor: "not-allowed", border: "1px solid #1e2a3e" }
+                : { background: "linear-gradient(135deg,#2563eb,#3b82f6)", color: "#fff", boxShadow: "0 0 10px rgba(59,130,246,0.25)" }
+            }
           >
             <Plus className="w-3.5 h-3.5" />
             <span>{isSelectedInQuiz ? "En el examen" : "Agregar"}</span>

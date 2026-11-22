@@ -71,17 +71,21 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({
   const isSolutions = previewMode === "solutions";
 
   return (
-    <div className="h-full flex flex-col bg-dark-900 overflow-hidden">
-      {/* Barra superior de herramientas del Quiz */}
-      <div className="p-3 bg-dark-850/80 border-b border-dark-750 flex flex-wrap items-center justify-between gap-2 shrink-0">
+    <div className="h-full flex flex-col overflow-hidden" style={{ background: "#0d1117" }}>
+      {/* ── Barra superior de herramientas ── */}
+      <div
+        className="p-3 flex flex-wrap items-center justify-between gap-2 shrink-0"
+        style={{ background: "#111827", borderBottom: "1px solid #1e2a3e" }}
+      >
         <div className="flex items-center space-x-2">
           <button
             onClick={() => setShowHeaderSettings(!showHeaderSettings)}
-            className={`flex items-center space-x-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md border transition-colors ${
+            className="flex items-center space-x-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md transition-colors"
+            style={
               showHeaderSettings
-                ? "bg-brand-600/20 border-brand-500 text-brand-400"
-                : "bg-dark-800 border-dark-700 text-slate-300 hover:text-white"
-            }`}
+                ? { background: "rgba(59,130,246,0.15)", border: "1px solid rgba(59,130,246,0.4)", color: "#60a5fa" }
+                : { background: "#161e2e", border: "1px solid #1e2a3e", color: "#94a3b8" }
+            }
           >
             <Settings2 className="w-3.5 h-3.5" />
             <span>Encabezado</span>
@@ -91,7 +95,8 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({
             onClick={onShuffleQuestions}
             disabled={quiz.items.length < 2}
             title="Mezclar orden de las preguntas aleatoriamente"
-            className="flex items-center space-x-1 px-2.5 py-1.5 text-xs font-medium text-slate-300 hover:text-white bg-dark-800 hover:bg-dark-700 border border-dark-700 rounded-md disabled:opacity-40 transition-colors"
+            className="flex items-center space-x-1 px-2.5 py-1.5 text-xs font-medium rounded-md disabled:opacity-40 transition-colors"
+            style={{ background: "#161e2e", border: "1px solid #1e2a3e", color: "#94a3b8" }}
           >
             <Shuffle className="w-3.5 h-3.5" />
             <span>Mezclar Preguntas</span>
@@ -101,7 +106,8 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({
             onClick={onShuffleOptions}
             disabled={mcQuestions.length === 0}
             title="Mezclar orden de opciones A, B, C, D manteniendo la correcta"
-            className="flex items-center space-x-1 px-2.5 py-1.5 text-xs font-medium text-slate-300 hover:text-white bg-dark-800 hover:bg-dark-700 border border-dark-700 rounded-md disabled:opacity-40 transition-colors"
+            className="flex items-center space-x-1 px-2.5 py-1.5 text-xs font-medium rounded-md disabled:opacity-40 transition-colors"
+            style={{ background: "#161e2e", border: "1px solid #1e2a3e", color: "#94a3b8" }}
           >
             <Sparkles className="w-3.5 h-3.5" />
             <span>Mezclar Incisos</span>
@@ -109,25 +115,30 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({
         </div>
 
         {/* Interruptor de Modo Alumno vs Modo Solucionario */}
-        <div className="flex items-center bg-dark-800 border border-dark-700 rounded-md p-0.5">
+        <div
+          className="flex items-center rounded-md p-0.5"
+          style={{ background: "#0d1117", border: "1px solid #1e2a3e" }}
+        >
           <button
             onClick={() => setPreviewMode("exam")}
-            className={`flex items-center space-x-1 px-2.5 py-1 text-xs rounded font-medium transition-colors ${
+            className="flex items-center space-x-1 px-2.5 py-1 text-xs rounded font-medium transition-colors"
+            style={
               previewMode === "exam"
-                ? "bg-brand-600 text-white"
-                : "text-slate-400 hover:text-slate-200"
-            }`}
+                ? { background: "#2563eb", color: "#fff" }
+                : { color: "#64748b" }
+            }
           >
             <Eye className="w-3 h-3" />
             <span>Estudiante</span>
           </button>
           <button
             onClick={() => setPreviewMode("solutions")}
-            className={`flex items-center space-x-1 px-2.5 py-1 text-xs rounded font-medium transition-colors ${
+            className="flex items-center space-x-1 px-2.5 py-1 text-xs rounded font-medium transition-colors"
+            style={
               previewMode === "solutions"
-                ? "bg-emerald-600 text-white"
-                : "text-slate-400 hover:text-slate-200"
-            }`}
+                ? { background: "#059669", color: "#fff" }
+                : { color: "#64748b" }
+            }
           >
             <EyeOff className="w-3 h-3" />
             <span>Solucionario</span>
@@ -137,64 +148,72 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({
 
       {/* Editor desplegable del Encabezado */}
       {showHeaderSettings && (
-        <div className="p-4 bg-dark-850 border-b border-dark-700 space-y-3 shrink-0">
-          <h3 className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+        <div
+          className="p-4 space-y-3 shrink-0"
+          style={{ background: "#111827", borderBottom: "1px solid #1e2a3e" }}
+        >
+          <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748b" }}>
             Configuración del Encabezado del Examen
           </h3>
           <div className="grid grid-cols-2 gap-3 text-xs">
             <div>
-              <label className="text-slate-400 block mb-1">Institución:</label>
+              <label className="block mb-1" style={{ color: "#94a3b8" }}>Institución:</label>
               <input
                 type="text"
                 value={quiz.header.institution}
                 onChange={(e) =>
                   onUpdateHeader({ ...quiz.header, institution: e.target.value })
                 }
-                className="w-full bg-dark-900 border border-dark-700 rounded px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-brand-500"
+                className="w-full rounded px-2.5 py-1.5 focus:outline-none"
+                style={{ background: "#0d1117", border: "1px solid #1e2a3e", color: "#e2e8f0" }}
               />
             </div>
             <div>
-              <label className="text-slate-400 block mb-1">Curso / Asignatura:</label>
+              <label className="block mb-1" style={{ color: "#94a3b8" }}>Curso / Asignatura:</label>
               <input
                 type="text"
                 value={quiz.header.course}
                 onChange={(e) =>
                   onUpdateHeader({ ...quiz.header, course: e.target.value })
                 }
-                className="w-full bg-dark-900 border border-dark-700 rounded px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-brand-500"
+                className="w-full rounded px-2.5 py-1.5 focus:outline-none"
+                style={{ background: "#0d1117", border: "1px solid #1e2a3e", color: "#e2e8f0" }}
               />
             </div>
             <div>
-              <label className="text-slate-400 block mb-1">Título de la Evaluación:</label>
+              <label className="block mb-1" style={{ color: "#94a3b8" }}>Título de la Evaluación:</label>
               <input
                 type="text"
                 value={quiz.header.title}
                 onChange={(e) =>
                   onUpdateHeader({ ...quiz.header, title: e.target.value })
                 }
-                className="w-full bg-dark-900 border border-dark-700 rounded px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-brand-500"
+                className="w-full rounded px-2.5 py-1.5 focus:outline-none"
+                style={{ background: "#0d1117", border: "1px solid #1e2a3e", color: "#e2e8f0" }}
               />
             </div>
             <div>
-              <label className="text-slate-400 block mb-1">Profesor(a) / Docente:</label>
+              <label className="block mb-1" style={{ color: "#94a3b8" }}>Profesor(a) / Docente:</label>
               <input
                 type="text"
                 value={quiz.header.teacher || ""}
                 onChange={(e) =>
                   onUpdateHeader({ ...quiz.header, teacher: e.target.value })
                 }
-                className="w-full bg-dark-900 border border-dark-700 rounded px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-brand-500"
+                className="w-full rounded px-2.5 py-1.5 focus:outline-none"
+                style={{ background: "#0d1117", border: "1px solid #1e2a3e", color: "#e2e8f0" }}
               />
             </div>
             <div className="col-span-2">
-              <label className="text-slate-400 block mb-1">Instrucciones Generales:</label>
+              <label className="block mb-1" style={{ color: "#94a3b8" }}>Instrucciones Generales:</label>
               <textarea
                 rows={2}
                 value={quiz.header.instructions}
                 onChange={(e) =>
                   onUpdateHeader({ ...quiz.header, instructions: e.target.value })
                 }
-                className="w-full bg-dark-900 border border-dark-700 rounded px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-brand-500"
+                className="w-full rounded px-2.5 py-1.5 focus:outline-none"
+                style={{ background: "#0d1117", border: "1px solid #1e2a3e", color: "#e2e8f0" }}
               />
             </div>
             <div className="col-span-2 flex items-center justify-between pt-1">
@@ -219,26 +238,29 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({
         </div>
       )}
 
-      {/* Vista Previa del Examen (Renderizado Real) */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 select-text">
-        {/* Encabezado formal del examen estilo examen impreso */}
-        <div className="border-2 border-[#1F3A5F]/60 dark:border-dark-700 rounded-xl p-5 bg-white/5 space-y-4">
-          <div className="text-center space-y-1 pb-3 border-b border-dark-700">
-            <h2 className="text-xs uppercase tracking-widest text-[#B08D57] font-semibold">
+      {/* ── Vista Previa del Examen ── */}
+      <div className="flex-1 overflow-y-auto p-5 space-y-5 select-text" style={{ background: "#0d1117" }}>
+        {/* Encabezado formal del examen */}
+        <div
+          className="rounded-xl p-5 space-y-4"
+          style={{ background: "#111827", border: "1px solid #1e2a3e" }}
+        >
+          <div className="text-center space-y-1 pb-3" style={{ borderBottom: "1px solid #1e2a3e" }}>
+            <h2 className="text-xs uppercase tracking-widest font-semibold" style={{ color: "#f59e0b" }}>
               {quiz.header.institution}
             </h2>
-            <h1 className="text-base font-bold text-slate-100">{quiz.header.title}</h1>
-            <div className="flex items-center justify-center space-x-4 text-xs text-slate-400 pt-0.5">
+            <h1 className="text-base font-bold" style={{ color: "#f1f5f9" }}>{quiz.header.title}</h1>
+            <div className="flex items-center justify-center space-x-4 text-xs pt-0.5" style={{ color: "#94a3b8" }}>
               <span>
                 <strong>Asignatura:</strong> {quiz.header.course}
               </span>
-              <span>&bull;</span>
+              <span style={{ color: "#1e2a3e" }}>•</span>
               <span>
                 <strong>Fecha:</strong> {quiz.header.date}
               </span>
               {quiz.header.teacher && (
                 <>
-                  <span>&bull;</span>
+                  <span style={{ color: "#1e2a3e" }}>•</span>
                   <span>
                     <strong>Docente:</strong> {quiz.header.teacher}
                   </span>
@@ -249,38 +271,44 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({
 
           {/* Campos para que el estudiante complete */}
           <div className="grid grid-cols-3 gap-3 text-xs pt-1">
-            <div className="border-b border-dashed border-dark-600 pb-1">
-              <span className="text-slate-400 font-medium">Estudiante: </span>
+            <div className="pb-1" style={{ borderBottom: "1px dashed #243048" }}>
+              <span className="font-medium" style={{ color: "#94a3b8" }}>Estudiante: </span>
             </div>
-            <div className="border-b border-dashed border-dark-600 pb-1">
-              <span className="text-slate-400 font-medium">Grupo / Grado: </span>
+            <div className="pb-1" style={{ borderBottom: "1px dashed #243048" }}>
+              <span className="font-medium" style={{ color: "#94a3b8" }}>Grupo / Grado: </span>
             </div>
-            <div className="border-b border-dashed border-dark-600 pb-1">
-              <span className="text-slate-400 font-medium">Calificación: </span>
-              <span className="text-slate-500 float-right font-mono">/ {totalPoints} pts</span>
+            <div className="pb-1" style={{ borderBottom: "1px dashed #243048" }}>
+              <span className="font-medium" style={{ color: "#94a3b8" }}>Calificación: </span>
+              <span className="float-right font-mono" style={{ color: "#64748b" }}>/ {totalPoints} pts</span>
             </div>
           </div>
 
           {/* Instrucciones */}
           {quiz.header.instructions && (
-            <div className="text-[11px] text-slate-400 leading-relaxed bg-dark-900/60 p-2.5 rounded border border-dark-750">
-              <strong className="text-slate-300">Instrucciones: </strong>
+            <div
+              className="text-[11px] leading-relaxed p-2.5 rounded"
+              style={{ background: "#0d1117", border: "1px solid #1e2a3e", color: "#94a3b8" }}
+            >
+              <strong style={{ color: "#cbd5e1" }}>Instrucciones: </strong>
               {quiz.header.instructions}
             </div>
           )}
 
-          {/* Hoja de Respuestas (Si está habilitada y hay preguntas de opción múltiple) */}
+          {/* Hoja de Respuestas */}
           {quiz.header.showAnswerSheet && mcQuestions.length > 0 && (
-            <div className="mt-4 pt-3 border-t border-dark-700">
+            <div className="mt-4 pt-3" style={{ borderTop: "1px solid #1e2a3e" }}>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "#cbd5e1" }}>
                   Hoja de Respuestas (Rellene la opción correcta)
                 </span>
-                <span className="text-[10px] text-slate-400">
+                <span className="text-[10px]" style={{ color: "#64748b" }}>
                   {mcQuestions.length} {mcQuestions.length === 1 ? "pregunta" : "preguntas"} de selección
                 </span>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2 bg-dark-900/90 p-3 rounded-lg border border-dark-750">
+              <div
+                className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2 p-3 rounded-lg"
+                style={{ background: "#0d1117", border: "1px solid #1e2a3e" }}
+              >
                 {mcQuestions.map(({ item, index }) => {
                   const num = index + 1;
                   const correctIdx = item.question.options.findIndex((o) => o.isCorrect);
@@ -487,15 +515,18 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({
         )}
       </div>
 
-      {/* Barra inferior: Resumen y Menú Desplegable de Exportación */}
-      <div className="p-3 bg-dark-850 border-t border-dark-750 flex flex-wrap items-center justify-between gap-3 shrink-0">
-        <div className="text-xs text-slate-300 flex items-center space-x-3">
+      {/* ── Barra inferior: Resumen + Export ── */}
+      <div
+        className="p-3 flex flex-wrap items-center justify-between gap-3 shrink-0"
+        style={{ background: "#111827", borderTop: "1px solid #1e2a3e" }}
+      >
+        <div className="text-xs flex items-center space-x-3" style={{ color: "#94a3b8" }}>
           <span>
-            Preguntas: <strong>{quiz.items.length}</strong>
+            Preguntas: <strong style={{ color: "#f1f5f9" }}>{quiz.items.length}</strong>
           </span>
-          <span>&bull;</span>
+          <span style={{ color: "#1e2a3e" }}>•</span>
           <span>
-            Total Puntos: <strong className="text-brand-400">{totalPoints}</strong>
+            Total Puntos: <strong style={{ color: "#60a5fa" }}>{totalPoints}</strong>
           </span>
         </div>
 
@@ -505,7 +536,8 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({
             type="button"
             disabled={quiz.items.length === 0}
             onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
-            className="flex items-center space-x-2 px-4 py-2 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-500 rounded-lg transition-all shadow-sm hover:shadow-brand-500/20 active:scale-95 disabled:opacity-40"
+            className="flex items-center space-x-2 px-4 py-2 text-xs font-semibold text-white rounded-lg transition-all active:scale-95 disabled:opacity-40"
+            style={{ background: "linear-gradient(135deg,#2563eb,#3b82f6)", boxShadow: "0 0 12px rgba(59,130,246,0.3)" }}
           >
             <Download className="w-3.5 h-3.5" />
             <span>Exportar Examen</span>
@@ -514,74 +546,80 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({
 
           {/* Menú Desplegable */}
           {isExportMenuOpen && (
-            <div className="absolute right-0 bottom-full mb-2 w-64 bg-dark-850 border border-dark-700 rounded-xl shadow-2xl p-1.5 space-y-1 z-30 animate-in fade-in duration-100">
-              <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-dark-750">
+            <div
+              className="absolute right-0 bottom-full mb-2 w-64 rounded-xl shadow-2xl p-1.5 space-y-1 z-30"
+              style={{ background: "#111827", border: "1px solid #1e2a3e" }}
+            >
+              <div
+                className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider"
+                style={{ color: "#64748b", borderBottom: "1px solid #1e2a3e" }}
+              >
                 Opciones de Exportación
               </div>
 
               {/* 1. Imprimir / PDF */}
               <button
                 type="button"
-                onClick={() => {
-                  setIsExportMenuOpen(false);
-                  onExportPdf();
-                }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-slate-200 hover:text-white hover:bg-dark-750 rounded-lg transition-colors text-left"
+                onClick={() => { setIsExportMenuOpen(false); onExportPdf(); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs rounded-lg transition-colors text-left"
+                style={{ color: "#cbd5e1" }}
+                onMouseEnter={e => (e.currentTarget.style.background = "#161e2e")}
+                onMouseLeave={e => (e.currentTarget.style.background = "")}
               >
-                <Printer className="w-4 h-4 text-rose-400 shrink-0" />
+                <Printer className="w-4 h-4 shrink-0" style={{ color: "#f43f5e" }} />
                 <div>
                   <div className="font-medium">Imprimir / PDF</div>
-                  <div className="text-[10px] text-slate-400">Impresión directa o guardar PDF</div>
+                  <div className="text-[10px]" style={{ color: "#64748b" }}>Impresión directa o guardar PDF</div>
                 </div>
               </button>
 
               {/* 2. LaTeX */}
               <button
                 type="button"
-                onClick={() => {
-                  setIsExportMenuOpen(false);
-                  onOpenLatexModal(previewMode);
-                }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-slate-200 hover:text-white hover:bg-dark-750 rounded-lg transition-colors text-left"
+                onClick={() => { setIsExportMenuOpen(false); onOpenLatexModal(previewMode); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs rounded-lg transition-colors text-left"
+                style={{ color: "#cbd5e1" }}
+                onMouseEnter={e => (e.currentTarget.style.background = "#161e2e")}
+                onMouseLeave={e => (e.currentTarget.style.background = "")}
               >
-                <FileCode className="w-4 h-4 text-emerald-400 shrink-0" />
+                <FileCode className="w-4 h-4 shrink-0" style={{ color: "#10b981" }} />
                 <div>
                   <div className="font-medium">Código LaTeX (.tex)</div>
-                  <div className="text-[10px] text-slate-400">Ver código o descargar .tex</div>
+                  <div className="text-[10px]" style={{ color: "#64748b" }}>Ver código o descargar .tex</div>
                 </div>
               </button>
 
               {/* 3. Word */}
               <button
                 type="button"
-                onClick={() => {
-                  setIsExportMenuOpen(false);
-                  onExportWord(previewMode);
-                }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-slate-200 hover:text-white hover:bg-dark-750 rounded-lg transition-colors text-left"
+                onClick={() => { setIsExportMenuOpen(false); onExportWord(previewMode); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs rounded-lg transition-colors text-left"
+                style={{ color: "#cbd5e1" }}
+                onMouseEnter={e => (e.currentTarget.style.background = "#161e2e")}
+                onMouseLeave={e => (e.currentTarget.style.background = "")}
               >
-                <FileText className="w-4 h-4 text-blue-400 shrink-0" />
+                <FileText className="w-4 h-4 shrink-0" style={{ color: "#60a5fa" }} />
                 <div>
                   <div className="font-medium">Documento Word (.docx)</div>
-                  <div className="text-[10px] text-slate-400">Editable con tipografía institucional</div>
+                  <div className="text-[10px]" style={{ color: "#64748b" }}>Editable con tipografía institucional</div>
                 </div>
               </button>
 
-              <div className="my-1 border-t border-dark-750" />
+              <div className="my-1" style={{ borderTop: "1px solid #1e2a3e" }} />
 
               {/* 4. Cuestionario Web HTML5 */}
               <button
                 type="button"
-                onClick={() => {
-                  setIsExportMenuOpen(false);
-                  onOpenExportHtml();
-                }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-indigo-300 hover:text-white hover:bg-indigo-950/40 rounded-lg transition-colors text-left"
+                onClick={() => { setIsExportMenuOpen(false); onOpenExportHtml(); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs rounded-lg transition-colors text-left"
+                style={{ color: "#a5b4fc" }}
+                onMouseEnter={e => (e.currentTarget.style.background = "rgba(99,102,241,0.1)")}
+                onMouseLeave={e => (e.currentTarget.style.background = "")}
               >
-                <Globe className="w-4 h-4 text-indigo-400 shrink-0" />
+                <Globe className="w-4 h-4 shrink-0" style={{ color: "#8b5cf6" }} />
                 <div>
-                  <div className="font-semibold text-indigo-300">Cuestionario Web (HTML5)</div>
-                  <div className="text-[10px] text-slate-400">App interactiva lista para estudiantes</div>
+                  <div className="font-semibold">Cuestionario Web (HTML5)</div>
+                  <div className="text-[10px]" style={{ color: "#64748b" }}>App interactiva lista para estudiantes</div>
                 </div>
               </button>
             </div>

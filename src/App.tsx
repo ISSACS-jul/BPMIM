@@ -282,7 +282,7 @@ export function App() {
   const quizQuestionIds = new Set(quiz.items.map((it) => it.question.id));
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-dark-900 select-none overflow-hidden">
+    <div className="h-screen w-screen flex flex-col select-none overflow-hidden" style={{ background: "#0d1117" }}>
       {/* Barra de Navegación Superior */}
       <Header
         totalQuestions={questions.length}
@@ -316,10 +316,11 @@ export function App() {
         {/* Separador vertical redimensionable */}
         <div
           onMouseDown={() => setIsResizing(true)}
-          className="w-1.5 hover:w-2 bg-dark-750 hover:bg-brand-500 cursor-col-resize transition-all shrink-0 flex items-center justify-center group z-20"
+          className="w-1 hover:w-1.5 cursor-col-resize transition-all shrink-0 flex items-center justify-center group z-20"
+          style={{ background: "#1e2a3e" }}
           title="Arrastra para ajustar el ancho de los paneles"
         >
-          <div className="h-8 w-0.5 bg-dark-600 group-hover:bg-white rounded" />
+          <div className="h-10 w-0.5 rounded-full transition-colors" style={{ background: "#243048" }} />
         </div>
 
         {/* Panel Derecho: Constructor de Examen / Quiz */}
