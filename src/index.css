@@ -236,6 +236,24 @@ select option {
 }
 .cell-appear { animation: cell-appear 0.18s ease-out; }
 
+/* ══════════════════════════════════════════════════════════════════════
+   ESCALA TIPOGRÁFICA FLUIDA Y HERENCIA DE FUENTES
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Convertir tamaños de píxeles arbitrarios a unidades rem para que sigan la escala de UI */
+.text-\[9px\] { font-size: 0.5625rem !important; }
+.text-\[10px\] { font-size: 0.625rem !important; }
+.text-\[11px\] { font-size: 0.6875rem !important; }
+
+/* Controles de formulario: asegurar herencia y escalado proporcional de texto */
+input, textarea, select, button {
+  font-family: inherit;
+}
+
+html, body {
+  -webkit-text-size-adjust: 100%;
+}
+
 /* Focus ring */
 input:focus, textarea:focus, select:focus {
   outline: none;

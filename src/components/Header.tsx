@@ -26,14 +26,6 @@ export const Header: React.FC<HeaderProps> = ({
           BPMIM
         </span>
 
-        {/* Separador breadcrumb */}
-        <span className="text-sm font-light select-none text-slate-500">/</span>
-
-        {/* Badge de versión */}
-        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-400 border border-sky-500/30">
-          v0.3.5
-        </span>
-
         {/* Separador */}
         <span className="text-sm select-none text-slate-500">/</span>
 

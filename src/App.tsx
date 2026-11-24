@@ -55,6 +55,14 @@ export function App() {
     return "default";
   });
 
+  useEffect(() => {
+    aplicarEscalaUI(uiScale);
+  }, [uiScale]);
+
+  useEffect(() => {
+    aplicarTemaVisual(temaVisual);
+  }, [temaVisual]);
+
   const handleScaleChange = (factor: number) => {
     setUiScale(factor);
     aplicarEscalaUI(factor);

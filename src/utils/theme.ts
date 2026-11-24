@@ -75,6 +75,10 @@ export function aplicarEscalaUI(factor: number) {
   const baseSize = 16;
   const targetPx = Math.round(baseSize * factor);
   document.documentElement.style.fontSize = `${targetPx}px`;
+  if (document.body) {
+    document.body.style.fontSize = `${targetPx}px`;
+  }
+  document.documentElement.style.setProperty('--ui-scale-factor', String(factor));
   localStorage.setItem('app_ui_scale', String(factor));
   localStorage.setItem('bpmim_zoom_level_v1', String(Math.round(factor * 100)));
 }
