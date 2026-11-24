@@ -2,99 +2,254 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ============================================================
-   CLMIM-STYLE DESIGN SYSTEM — Global Base
-   ============================================================ */
+/* ══════════════════════════════════════════════════════════════════════
+   SISTEMA DE TEMAS VISUALES ERGONÓMICOS (theme_template)
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* 1. TEMA DEFAULT (Oscuro Clásico / Slate & Sky) */
+:root,
+[data-theme="default"] {
+  --color-slate-50: 248 250 252;
+  --color-slate-100: 241 245 249;
+  --color-slate-200: 226 232 240;
+  --color-slate-300: 203 213 225;
+  --color-slate-400: 148 163 184;
+  --color-slate-500: 100 116 139;
+  --color-slate-600: 71 85 105;
+  --color-slate-700: 51 65 85;
+  --color-slate-750: 38 50 69;
+  --color-slate-800: 30 41 59;
+  --color-slate-850: 22 30 46;
+  --color-slate-900: 15 23 42;
+  --color-slate-950: 2 6 23;
+
+  --color-sky-50: 240 249 255;
+  --color-sky-100: 224 242 254;
+  --color-sky-200: 186 230 253;
+  --color-sky-300: 125 211 252;
+  --color-sky-400: 56 189 248;
+  --color-sky-500: 14 165 233;
+  --color-sky-600: 2 132 199;
+  --color-sky-700: 3 105 161;
+  --color-sky-800: 7 89 133;
+  --color-sky-900: 12 74 110;
+  --color-sky-950: 8 47 73;
+
+  --theme-bg: #0f172a;
+  --theme-text: #e2e8f0;
+  --theme-input-bg: #1e293b;
+  --theme-input-border: #475569;
+  --theme-scheme: dark;
+}
+
+/* 2. TEMA ELEGANTE OSCURO (Grafito Mate & Bronce Champán Suave) */
+[data-theme="dark-gold"] {
+  --color-slate-50: 248 249 251;
+  --color-slate-100: 240 242 247;
+  --color-slate-200: 226 229 237;
+  --color-slate-300: 198 204 216;
+  --color-slate-400: 152 160 176;
+  --color-slate-500: 108 116 132;
+  --color-slate-600: 58 64 78;
+  --color-slate-700: 36 41 52;
+  --color-slate-750: 29 33 42;
+  --color-slate-800: 24 28 36;
+  --color-slate-850: 19 22 29;
+  --color-slate-900: 16 19 25;
+  --color-slate-950: 10 12 16;
+
+  --color-sky-50: 252 249 242;
+  --color-sky-100: 247 240 228;
+  --color-sky-200: 238 224 201;
+  --color-sky-300: 224 202 164;
+  --color-sky-400: 206 176 128;
+  --color-sky-500: 188 152 98;
+  --color-sky-600: 164 128 76;
+  --color-sky-700: 136 104 58;
+  --color-sky-800: 108 81 44;
+  --color-sky-900: 68 51 28;
+  --color-sky-950: 42 31 17;
+
+  --theme-bg: #101319;
+  --theme-text: #e6e9f0;
+  --theme-input-bg: #1c212b;
+  --theme-input-border: #384050;
+  --theme-scheme: dark;
+}
+
+/* 3. TEMA NEGRO PURO (Alto Contraste / OLED) */
+[data-theme="black"] {
+  --color-slate-50: 255 255 255;
+  --color-slate-100: 245 245 245;
+  --color-slate-200: 230 230 230;
+  --color-slate-300: 200 200 200;
+  --color-slate-400: 160 160 160;
+  --color-slate-500: 115 115 115;
+  --color-slate-600: 60 60 60;
+  --color-slate-700: 38 38 38;
+  --color-slate-750: 26 26 26;
+  --color-slate-800: 17 17 17;
+  --color-slate-850: 10 10 10;
+  --color-slate-900: 0 0 0;
+  --color-slate-950: 0 0 0;
+
+  --color-sky-50: 240 249 255;
+  --color-sky-100: 224 242 254;
+  --color-sky-200: 186 230 253;
+  --color-sky-300: 125 211 252;
+  --color-sky-400: 96 165 250;
+  --color-sky-500: 59 130 246;
+  --color-sky-600: 37 99 235;
+  --color-sky-700: 29 78 216;
+  --color-sky-800: 30 64 175;
+  --color-sky-900: 23 37 84;
+  --color-sky-950: 10 18 42;
+
+  --theme-bg: #000000;
+  --theme-text: #ffffff;
+  --theme-input-bg: #111111;
+  --theme-input-border: #333333;
+  --theme-scheme: dark;
+}
+
+/* 4. TEMA CLARO (Gris Perla Suave & Azul Sereno) */
+[data-theme="light"] {
+  --color-slate-50: 24 33 47;
+  --color-slate-100: 24 33 47;
+  --color-slate-200: 39 49 66;
+  --color-slate-300: 65 77 97;
+  --color-slate-400: 100 112 131;
+  --color-slate-500: 130 142 160;
+  --color-slate-600: 209 216 226;
+  --color-slate-700: 226 232 240;
+  --color-slate-750: 235 240 246;
+  --color-slate-800: 255 255 255;
+  --color-slate-850: 248 250 252;
+  --color-slate-900: 244 246 249;
+  --color-slate-950: 250 251 253;
+
+  --color-sky-50: 240 248 255;
+  --color-sky-100: 224 240 254;
+  --color-sky-200: 186 224 252;
+  --color-sky-300: 125 200 248;
+  --color-sky-400: 48 168 232;
+  --color-sky-500: 18 138 209;
+  --color-sky-600: 14 116 178;
+  --color-sky-700: 11 93 144;
+  --color-sky-800: 9 74 115;
+  --color-sky-900: 219 238 254;
+  --color-sky-950: 239 247 255;
+
+  --theme-bg: #f4f6f9;
+  --theme-text: #18212f;
+  --theme-input-bg: #ffffff;
+  --theme-input-border: #cbd5e1;
+  --theme-scheme: light;
+}
+
+/* 5. TEMA ELEGANTE CLARO (Marfil Cálido & Champán Satinado) */
+[data-theme="light-gold"] {
+  --color-slate-50: 38 34 30;
+  --color-slate-100: 38 34 30;
+  --color-slate-200: 56 50 44;
+  --color-slate-300: 82 74 65;
+  --color-slate-400: 122 112 100;
+  --color-slate-500: 154 144 132;
+  --color-slate-600: 218 210 196;
+  --color-slate-700: 232 225 212;
+  --color-slate-750: 240 235 225;
+  --color-slate-800: 255 255 255;
+  --color-slate-850: 250 247 240;
+  --color-slate-900: 246 243 235;
+  --color-slate-950: 252 250 246;
+
+  --color-sky-50: 253 250 244;
+  --color-sky-100: 250 243 230;
+  --color-sky-200: 242 227 202;
+  --color-sky-300: 228 203 162;
+  --color-sky-400: 202 168 116;
+  --color-sky-500: 176 138 84;
+  --color-sky-600: 148 112 60;
+  --color-sky-700: 122 91 46;
+  --color-sky-800: 98 72 36;
+  --color-sky-900: 253 245 230;
+  --color-sky-950: 255 251 243;
+
+  --theme-bg: #f6f3eb;
+  --theme-text: #26221e;
+  --theme-input-bg: #ffffff;
+  --theme-input-border: #dcd3c3;
+  --theme-scheme: light;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   ESTILOS BASE
+   ══════════════════════════════════════════════════════════════════════ */
 
 :root {
-  color-scheme: dark;
-  --bg-base:    #0d1117;
-  --bg-panel:   #111827;
-  --bg-card:    #161e2e;
-  --bg-hover:   #1a2235;
-  --border:     #1e2a3e;
-  --border-alt: #243048;
-  --text-1:     #f1f5f9;
-  --text-2:     #cbd5e1;
-  --text-3:     #94a3b8;
-  --text-4:     #64748b;
-  --blue:       #3b82f6;
-  --blue-light: #60a5fa;
-  --amber:      #f59e0b;
-  --emerald:    #10b981;
-  --rose:       #f43f5e;
-  --violet:     #8b5cf6;
+  color-scheme: var(--theme-scheme, dark);
 }
 
-/* ---- Inputs / Selects (native dark on Linux) ---- */
-select, option, input, textarea { color-scheme: dark; }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background-color: var(--theme-bg, #0f172a);
+  color: var(--theme-text, #e2e8f0);
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+select, input, textarea {
+  color-scheme: var(--theme-scheme, dark);
+}
 
 select {
-  background-color: #161e2e !important;
-  color: #e2e8f0 !important;
-  border-color: #1e2a3e !important;
-}
-option {
-  background-color: #111827 !important;
-  color: #e2e8f0 !important;
+  background-color: var(--theme-input-bg, #1e293b) !important;
+  color: var(--theme-text, #f1f5f9) !important;
+  border-color: var(--theme-input-border, #475569) !important;
 }
 
-/* ---- Custom scrollbar ---- */
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: #0d1117; }
-::-webkit-scrollbar-thumb { background: #243048; border-radius: 6px; }
-::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
+select option {
+  background-color: var(--theme-input-bg, #1e293b) !important;
+  color: var(--theme-text, #f1f5f9) !important;
+}
 
-/* ---- KaTeX math rendering ---- */
+/* Scrollbar ergonómica */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--theme-bg, #0f172a); }
+::-webkit-scrollbar-thumb { background: var(--theme-input-border, #334155); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { filter: brightness(1.2); }
+
+/* KaTeX math rendering */
 .katex {
   font-size: 1.08em;
-  color: #93c5fd;
+  color: rgb(var(--color-sky-400));
 }
-.katex-display-wrapper .katex { color: #bfdbfe; }
+.katex-display-wrapper .katex {
+  color: rgb(var(--color-sky-300));
+}
 
-/* ---- Notebook cell animation ---- */
+/* Celdas y animaciones */
 @keyframes cell-appear {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .cell-appear { animation: cell-appear 0.18s ease-out; }
 
-/* ---- Badge type colors (CLMIM style) ---- */
-.badge-markdown {
-  background: rgba(59,130,246,0.15);
-  color: #60a5fa;
-  border: 1px solid rgba(59,130,246,0.3);
-}
-.badge-multiple {
-  background: rgba(99,102,241,0.15);
-  color: #a5b4fc;
-  border: 1px solid rgba(99,102,241,0.3);
-}
-.badge-open {
-  background: rgba(245,158,11,0.12);
-  color: #fcd34d;
-  border: 1px solid rgba(245,158,11,0.3);
-}
-.badge-easy   { background: rgba(16,185,129,0.12); color: #6ee7b7; border:1px solid rgba(16,185,129,0.3); }
-.badge-medium { background: rgba(245,158,11,0.12); color: #fcd34d;  border:1px solid rgba(245,158,11,0.3); }
-.badge-hard   { background: rgba(244,63,94,0.12);  color: #fda4af;  border:1px solid rgba(244,63,94,0.3); }
-
-/* ---- Active cell left-border glow ---- */
-.cell-active { border-left: 3px solid #3b82f6 !important; }
-
-/* ---- Focus ring override ---- */
+/* Focus ring */
 input:focus, textarea:focus, select:focus {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(59,130,246,0.35);
-  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(var(--color-sky-500) / 0.35);
+  border-color: rgb(var(--color-sky-500)) !important;
 }
 
-/* ==============================================================
+/* ══════════════════════════════════════════════════════════════════════
    ESTILOS DE IMPRESIÓN Y EXPORTACIÓN A PDF (@media print)
-   ============================================================== */
+   ══════════════════════════════════════════════════════════════════════ */
 @media print {
   header,
   .w-1\.5,
+  .w-1,
   div[style*="width: 48%"],
   button,
   .border-b.border-dark-750,
@@ -102,7 +257,7 @@ input:focus, textarea:focus, select:focus {
     display: none !important;
   }
 
-  body, #root, .bg-dark-900, .bg-dark-850 {
+  body, #root, .bg-dark-900, .bg-dark-850, .bg-slate-900, .bg-slate-850 {
     background: #ffffff !important;
     color: #1a202c !important;
     overflow: visible !important;
@@ -133,7 +288,7 @@ input:focus, textarea:focus, select:focus {
 
   .text-\[\#1F3A5F\] { color: #1F3A5F !important; }
 
-  .bg-dark-850, .bg-dark-900 {
+  .bg-dark-850, .bg-dark-900, .bg-slate-850, .bg-slate-900 {
     background: transparent !important;
     border-color: #cbd5e1 !important;
     color: #000000 !important;
@@ -141,110 +296,8 @@ input:focus, textarea:focus, select:focus {
   }
 
   .text-slate-100, .text-slate-200, .text-slate-300, .text-slate-400 { color: #1e293b !important; }
-  .border-dark-700, .border-dark-750 { border-color: #cbd5e1 !important; }
+  .border-dark-700, .border-dark-750, .border-slate-700, .border-slate-750 { border-color: #cbd5e1 !important; }
   .border-\[\#1F3A5F\] { border-color: #1F3A5F !important; -webkit-print-color-adjust: exact !important; }
   .border-l-\[\#B08D57\] { border-left-color: #B08D57 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   .group.relative { break-inside: avoid; page-break-inside: avoid; margin-bottom: 1.5rem !important; border: 1px solid #e2e8f0 !important; }
-}
-
-/* ==============================================================
-   ESTILOS DE IMPRESIÓN Y EXPORTACIÓN A PDF (@media print)
-   Reproduce la plantilla formal institucional al imprimir
-   ============================================================== */
-@media print {
-  /* Ocultar elementos de interfaz y panel izquierdo */
-  header,
-  .w-1\.5,
-  div[style*="width: 48%"],
-  button,
-  .border-b.border-dark-750,
-  .p-3.bg-dark-850 {
-    display: none !important;
-  }
-
-  body,
-  #root,
-  .bg-dark-900,
-  .bg-dark-850 {
-    background: #ffffff !important;
-    color: #1a202c !important;
-    overflow: visible !important;
-    height: auto !important;
-    width: 100% !important;
-  }
-
-  div[style*="width: 52%"] {
-    width: 100% !important;
-    height: auto !important;
-    overflow: visible !important;
-  }
-
-  .print-container {
-    padding: 0 !important;
-    margin: 0 !important;
-    overflow: visible !important;
-  }
-
-  .katex {
-    color: #000000 !important;
-  }
-
-  /* Banda superior en impresión */
-  .bg-\[\#1F3A5F\] {
-    background-color: #1F3A5F !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  .bg-\[\#B08D57\] {
-    background-color: #B08D57 !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  .text-\[\#1F3A5F\] {
-    color: #1F3A5F !important;
-  }
-
-  /* Cajas en papel */
-  .bg-dark-850,
-  .bg-dark-900 {
-    background: transparent !important;
-    border-color: #cbd5e1 !important;
-    color: #000000 !important;
-    box-shadow: none !important;
-  }
-
-  .text-slate-100,
-  .text-slate-200,
-  .text-slate-300,
-  .text-slate-400 {
-    color: #1e293b !important;
-  }
-
-  .border-dark-700,
-  .border-dark-750 {
-    border-color: #cbd5e1 !important;
-  }
-
-  /* Burbujas de hoja de respuestas */
-  .border-\[\#1F3A5F\] {
-    border-color: #1F3A5F !important;
-    -webkit-print-color-adjust: exact !important;
-  }
-
-  /* Cuadro de respuesta abierta */
-  .border-l-\[\#B08D57\] {
-    border-left-color: #B08D57 !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  /* Evitar cortes indeseados en medio de una pregunta al imprimir */
-  .group.relative {
-    break-inside: avoid;
-    page-break-inside: avoid;
-    margin-bottom: 1.5rem !important;
-    border: 1px solid #e2e8f0 !important;
-  }
 }

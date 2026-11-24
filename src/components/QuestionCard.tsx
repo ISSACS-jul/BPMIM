@@ -25,81 +25,54 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   const isOpenType = question.type === "open";
   const optionLabels = ["A", "B", "C", "D", "E", "F"];
 
-  // Difficulty style map (CLMIM-style badges)
-  const diffStyle: Record<string, React.CSSProperties> = {
-    Fácil:   { background: "rgba(16,185,129,0.12)",  color: "#6ee7b7", border: "1px solid rgba(16,185,129,0.3)" },
-    Media:   { background: "rgba(245,158,11,0.12)",  color: "#fcd34d", border: "1px solid rgba(245,158,11,0.3)" },
-    Difícil: { background: "rgba(244,63,94,0.12)",   color: "#fda4af", border: "1px solid rgba(244,63,94,0.3)"  },
+  // Estilos de dificultad
+  const diffClass: Record<string, string> = {
+    Fácil:   "bg-emerald-950/30 text-emerald-400 border-emerald-800/50",
+    Media:   "bg-amber-950/30 text-amber-400 border-amber-800/50",
+    Difícil: "bg-rose-950/30 text-rose-400 border-rose-800/50",
   };
 
   return (
     <div
-      className="group relative cell-appear flex flex-col justify-between rounded-xl transition-all duration-200"
-      style={{
-        background: "#111827",
-        border: "1px solid #1e2a3e",
-        borderLeft: "3px solid #243048",
-        padding: "0",
-        overflow: "hidden",
-      }}
-      onMouseEnter={e => {
-        (e.currentTarget as HTMLElement).style.borderLeftColor = "#3b82f6";
-        (e.currentTarget as HTMLElement).style.boxShadow = "0 0 0 1px rgba(59,130,246,0.1), 0 4px 16px rgba(0,0,0,0.4)";
-      }}
-      onMouseLeave={e => {
-        (e.currentTarget as HTMLElement).style.borderLeftColor = "#243048";
-        (e.currentTarget as HTMLElement).style.boxShadow = "none";
-      }}
+      className="group relative cell-appear flex flex-col justify-between rounded-xl transition-all duration-200 bg-slate-850 border border-slate-700/80 border-l-[3.5px] border-l-slate-600 hover:border-l-sky-500 overflow-hidden shadow-sm hover:shadow-md"
     >
       {/* ── Cell Header ── */}
-      <div
-        className="flex flex-wrap items-center justify-between gap-2 px-3 py-2"
-        style={{ background: "#0d1117", borderBottom: "1px solid #1e2a3e" }}
-      >
+      <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2 bg-slate-900 border-b border-slate-750">
         <div className="flex flex-wrap items-center gap-1.5">
           {/* Tipo badge */}
           <span
-            className="text-[10px] font-semibold px-2 py-0.5 rounded-md flex items-center gap-1 font-mono"
-            style={
+            className={`text-[10px] font-semibold px-2 py-0.5 rounded-md flex items-center gap-1 font-mono border ${
               isOpenType
-                ? { background: "rgba(245,158,11,0.12)", color: "#fcd34d", border: "1px solid rgba(245,158,11,0.3)" }
-                : { background: "rgba(99,102,241,0.15)", color: "#a5b4fc", border: "1px solid rgba(99,102,241,0.3)" }
-            }
+                ? "bg-amber-950/30 text-amber-400 border-amber-800/50"
+                : "bg-indigo-950/30 text-indigo-400 border-indigo-800/50"
+            }`}
           >
             {isOpenType ? <Square className="w-2.5 h-2.5" /> : <CheckSquare className="w-2.5 h-2.5" />}
             {isOpenType ? "Abierta" : "Opción Múltiple"}
           </span>
 
           {/* Curso */}
-          <span
-            className="text-[11px] font-semibold px-2 py-0.5 rounded-md"
-            style={{ background: "rgba(59,130,246,0.12)", color: "#60a5fa", border: "1px solid rgba(59,130,246,0.25)" }}
-          >
+          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-sky-500/15 text-sky-400 border border-sky-500/30">
             {question.course}
           </span>
 
           {/* Tema */}
-          <span
-            className="text-[11px] font-medium px-2 py-0.5 rounded-md"
-            style={{ background: "#161e2e", color: "#cbd5e1", border: "1px solid #1e2a3e" }}
-          >
+          <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-slate-800 text-slate-200 border border-slate-700">
             {question.topic}
           </span>
 
           {/* Subtema */}
           {question.subtopic && (
-            <span
-              className="text-[11px] px-1.5 py-0.5 rounded"
-              style={{ color: "#94a3b8", background: "#0d1117", border: "1px solid #1e2a3e" }}
-            >
+            <span className="text-[11px] px-1.5 py-0.5 rounded text-slate-400 bg-slate-900 border border-slate-750">
               {question.subtopic}
             </span>
           )}
 
           {/* Dificultad */}
           <span
-            className="text-[10px] font-medium px-1.5 py-0.5 rounded"
-            style={diffStyle[question.difficulty] || {}}
+            className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${
+              diffClass[question.difficulty] || "bg-slate-800 text-slate-400 border-slate-700"
+            }`}
           >
             {question.difficulty}
           </span>
@@ -111,10 +84,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
             <button
               onClick={onEdit}
               title="Editar pregunta"
-              className="p-1.5 rounded-md transition-colors"
-              style={{ color: "#64748b" }}
-              onMouseEnter={e => (e.currentTarget.style.color = "#60a5fa")}
-              onMouseLeave={e => (e.currentTarget.style.color = "#64748b")}
+              className="p-1.5 rounded-md text-slate-400 hover:text-sky-400 hover:bg-slate-750 transition-colors"
             >
               <Edit2 className="w-3.5 h-3.5" />
             </button>
@@ -123,10 +93,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
             <button
               onClick={onDelete}
               title="Eliminar pregunta"
-              className="p-1.5 rounded-md transition-colors"
-              style={{ color: "#64748b" }}
-              onMouseEnter={e => (e.currentTarget.style.color = "#f43f5e")}
-              onMouseLeave={e => (e.currentTarget.style.color = "#64748b")}
+              className="p-1.5 rounded-md text-slate-400 hover:text-rose-400 hover:bg-slate-750 transition-colors"
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
@@ -135,26 +102,16 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
       </div>
 
       {/* ── Cell Body ── */}
-      <div className="px-4 pt-3 pb-2">
+      <div className="px-4 pt-3.5 pb-2">
         {/* Enunciado con LaTeX */}
         <div
-          className="prose prose-invert prose-sm max-w-none text-xs leading-relaxed mb-3 break-words [&>p]:mb-2 [&_img]:max-h-56 [&_img]:rounded-lg [&_img]:my-2 [&_img]:border [&_img]:border-dark-700"
-          style={{ color: "#e2e8f0" }}
+          className="prose prose-sm max-w-none text-xs leading-relaxed mb-3 break-words text-slate-200 [&>p]:mb-2 [&_img]:max-h-56 [&_img]:rounded-lg [&_img]:my-2 [&_img]:border [&_img]:border-slate-700"
           dangerouslySetInnerHTML={{ __html: renderedPrompt }}
         />
 
         {/* Opciones / Respuesta abierta */}
         {isOpenType ? (
-          <div
-            className="mb-3 p-3 rounded-md text-[11px] italic"
-            style={{
-              background: "#0d1117",
-              borderLeft: "3px solid #f59e0b",
-              border: "1px solid #1e2a3e",
-              borderLeftWidth: "3px",
-              color: "#94a3b8",
-            }}
-          >
+          <div className="mb-3 p-3 rounded-md text-[11px] italic bg-slate-900 border border-slate-750 border-l-[3.5px] border-l-amber-500 text-slate-400">
             [Espacio para respuesta escrita del estudiante: {question.openResponseHeight || 3.5} cm]
           </div>
         ) : (
@@ -164,16 +121,16 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
               return (
                 <div
                   key={opt.id || i}
-                  className="flex items-start gap-2 text-xs p-2 rounded-lg transition-colors"
-                  style={
+                  className={`flex items-start gap-2 text-xs p-2 rounded-lg transition-colors border ${
                     opt.isCorrect
-                      ? { background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.25)", color: "#6ee7b7" }
-                      : { background: "#0d1117", border: "1px solid #1e2a3e", color: "#cbd5e1" }
-                  }
+                      ? "bg-emerald-950/25 border-emerald-800/40 text-emerald-300"
+                      : "bg-slate-900 border-slate-750 text-slate-300"
+                  }`}
                 >
                   <span
-                    className="font-bold shrink-0 text-[11px] px-1 rounded font-mono"
-                    style={opt.isCorrect ? { color: "#10b981" } : { color: "#64748b" }}
+                    className={`font-bold shrink-0 text-[11px] px-1 rounded font-mono ${
+                      opt.isCorrect ? "text-emerald-400" : "text-slate-400"
+                    }`}
                   >
                     {optionLabels[i]}.
                   </span>
@@ -182,7 +139,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                     dangerouslySetInnerHTML={{ __html: renderedOpt }}
                   />
                   {opt.isCorrect && (
-                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: "#10b981" }} />
+                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5 text-emerald-400" />
                   )}
                 </div>
               );
@@ -192,17 +149,13 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
       </div>
 
       {/* ── Cell Footer ── */}
-      <div
-        className="px-3 py-2 flex items-center justify-between gap-2"
-        style={{ borderTop: "1px solid #1e2a3e", background: "#0d1117" }}
-      >
+      <div className="px-3.5 py-2 flex items-center justify-between gap-2 border-t border-slate-750 bg-slate-900">
         {/* Tags */}
         <div className="flex flex-wrap items-center gap-1 overflow-hidden">
           {question.tags.map((t, idx) => (
             <span
               key={idx}
-              className="text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1 font-mono"
-              style={{ color: "#64748b", background: "#161e2e", border: "1px solid #1e2a3e" }}
+              className="text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1 font-mono text-slate-400 bg-slate-800 border border-slate-700"
             >
               <Tag className="w-2.5 h-2.5 opacity-60" />
               {t}
@@ -215,12 +168,11 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
           <button
             onClick={onAddToQuiz}
             disabled={isSelectedInQuiz}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold transition-all shrink-0 active:scale-95"
-            style={
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold transition-all shrink-0 active:scale-95 ${
               isSelectedInQuiz
-                ? { background: "#161e2e", color: "#64748b", cursor: "not-allowed", border: "1px solid #1e2a3e" }
-                : { background: "linear-gradient(135deg,#2563eb,#3b82f6)", color: "#fff", boxShadow: "0 0 10px rgba(59,130,246,0.25)" }
-            }
+                ? "bg-slate-800 text-slate-400 border border-slate-700 cursor-not-allowed"
+                : "bg-sky-600 hover:bg-sky-500 text-white shadow-sm hover:shadow-sky-500/20"
+            }`}
           >
             <Plus className="w-3.5 h-3.5" />
             <span>{isSelectedInQuiz ? "En el examen" : "Agregar"}</span>

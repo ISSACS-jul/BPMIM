@@ -12,6 +12,11 @@ import { ExportHtmlModal } from "./components/ExportHtmlModal";
 import { SettingsModal } from "./components/SettingsModal";
 import { exportToWord, exportToPdf } from "./utils/exporters";
 import { initImageStore, onImageStoreUpdate, offImageStoreUpdate } from "./utils/imageStore";
+import {
+  TemaVisual,
+  aplicarTemaVisual,
+  aplicarEscalaUI,
+} from "./utils/theme";
 
 const STORAGE_KEY_BANK = "banco_preguntas_data_v2";
 const STORAGE_KEY_QUIZ = "banco_preguntas_quiz_v2";
@@ -31,23 +36,34 @@ export function App() {
     return () => offImageStoreUpdate(forceUpdateImages);
   }, []);
 
-  // Control de escala y tamaño de interfaz / letra
-  const [zoomLevel, setZoomLevel] = useState<number>(() => {
+  // Control de escala UI y Tema Visual Ergonómico
+  const [uiScale, setUiScale] = useState<number>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY_ZOOM);
-      if (saved) return Number(saved) || 100;
+      const saved = Number(localStorage.getItem("app_ui_scale"));
+      if (saved) return saved;
+      const legacyZoom = Number(localStorage.getItem(STORAGE_KEY_ZOOM));
+      if (legacyZoom) return legacyZoom / 100;
     } catch {}
-    return 100;
+    return 1;
   });
 
-  useEffect(() => {
+  const [temaVisual, setTemaVisual] = useState<TemaVisual>(() => {
     try {
-      localStorage.setItem(STORAGE_KEY_ZOOM, zoomLevel.toString());
-      document.documentElement.style.fontSize = `${(zoomLevel / 100) * 16}px`;
-    } catch (e) {
-      console.error("Error guardando zoom:", e);
-    }
-  }, [zoomLevel]);
+      const saved = localStorage.getItem("app_tema_visual") as TemaVisual;
+      if (saved) return saved;
+    } catch {}
+    return "default";
+  });
+
+  const handleScaleChange = (factor: number) => {
+    setUiScale(factor);
+    aplicarEscalaUI(factor);
+  };
+
+  const handleThemeChange = (tema: TemaVisual) => {
+    setTemaVisual(tema);
+    aplicarTemaVisual(tema);
+  };
 
   // Preguntas por página (20, 50, 100)
   const [pageSize, setPageSize] = useState<number>(() => {
@@ -282,7 +298,7 @@ export function App() {
   const quizQuestionIds = new Set(quiz.items.map((it) => it.question.id));
 
   return (
-    <div className="h-screen w-screen flex flex-col select-none overflow-hidden" style={{ background: "#0d1117" }}>
+    <div className="h-screen w-screen flex flex-col select-none overflow-hidden bg-slate-900 text-slate-100">
       {/* Barra de Navegación Superior */}
       <Header
         totalQuestions={questions.length}
@@ -316,11 +332,10 @@ export function App() {
         {/* Separador vertical redimensionable */}
         <div
           onMouseDown={() => setIsResizing(true)}
-          className="w-1 hover:w-1.5 cursor-col-resize transition-all shrink-0 flex items-center justify-center group z-20"
-          style={{ background: "#1e2a3e" }}
+          className="w-1 hover:w-1.5 cursor-col-resize transition-all shrink-0 flex items-center justify-center group z-20 bg-slate-750 hover:bg-sky-500"
           title="Arrastra para ajustar el ancho de los paneles"
         >
-          <div className="h-10 w-0.5 rounded-full transition-colors" style={{ background: "#243048" }} />
+          <div className="h-10 w-0.5 rounded-full transition-colors bg-slate-600 group-hover:bg-white" />
         </div>
 
         {/* Panel Derecho: Constructor de Examen / Quiz */}
@@ -369,8 +384,10 @@ export function App() {
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
         questions={questions}
-        zoomLevel={zoomLevel}
-        onZoomChange={setZoomLevel}
+        uiScale={uiScale}
+        onScaleChange={handleScaleChange}
+        temaVisual={temaVisual}
+        onThemeChange={handleThemeChange}
         pageSize={pageSize}
         onPageSizeChange={setPageSize}
         onOpenImport={() => setIsImportModalOpen(true)}
