@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Quiz } from "../types/quiz";
+import { Quiz, QUESTION_TYPE_LABELS } from "../types/quiz";
 import { renderMarkdownWithMath } from "../utils/markdownRenderer";
+import { getImageSync } from "../utils/imageStore";
+import { getShuffledMatchingRight } from "../utils/matchingHelper";
+import { VideoEmbedList } from "./VideoEmbedList";
 import {
   FileText,
   FileCode,
@@ -60,13 +63,27 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const totalPoints = quiz.items.reduce((sum, item) => sum + (item.points || 0), 0);
+  const totalPoints = quiz.items.reduce(
+    (sum, item) => sum + (item.question.type === "stimulus" ? 0 : item.points || 0),
+    0
+  );
   const optionLabels = ["A", "B", "C", "D", "E", "F"];
 
-  // Preguntas de opción múltiple para la hoja de respuestas
-  const mcQuestions = quiz.items
-    .map((item, index) => ({ item, index }))
-    .filter(({ item }) => item.question.type !== "open");
+  // Calcular numeración real (los bloques de estímulo no consumen número de pregunta)
+  let runningNum = 0;
+  const numberedItems = quiz.items.map((item, idx) => {
+    const isStimulus = item.question.type === "stimulus";
+    if (!isStimulus) runningNum += 1;
+    return { item, index: idx, questionNumber: isStimulus ? null : runningNum };
+  });
+
+  // Preguntas objetivas de selección para la hoja de respuestas
+  const mcQuestions = numberedItems.filter(
+    ({ item }) =>
+      item.question.type === "multiple_choice" ||
+      item.question.type === "multiple_response" ||
+      item.question.type === "true_false"
+  );
 
   const isSolutions = previewMode === "solutions";
 
@@ -281,8 +298,8 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({
                 </span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2 p-3 rounded-lg bg-slate-900 border border-slate-750">
-                {mcQuestions.map(({ item, index }) => {
-                  const num = index + 1;
+                {mcQuestions.map(({ item, questionNumber }) => {
+                  const num = questionNumber || 1;
                   const correctIdx = item.question.options.findIndex((o) => o.isCorrect);
 
                   return (
@@ -327,33 +344,60 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({
             </p>
           </div>
         ) : (
-          quiz.items.map((item, index) => {
+          numberedItems.map(({ item, index, questionNumber }) => {
             const q = item.question;
-            const renderedPrompt = renderMarkdownWithMath(q.prompt);
+            const isStimulus = q.type === "stimulus";
             const isOpenType = q.type === "open";
+            const isChoiceType =
+              q.type === "multiple_choice" ||
+              q.type === "multiple_response" ||
+              q.type === "true_false";
+            const renderedPrompt = renderMarkdownWithMath(q.prompt, {
+              showBlankAnswers: isSolutions,
+            });
+
+            const layoutClass =
+              q.optionLayout === "horizontal"
+                ? "grid grid-cols-2 sm:grid-cols-4 gap-2"
+                : q.optionLayout === "vertical"
+                ? "flex flex-col gap-2"
+                : "grid grid-cols-1 sm:grid-cols-2 gap-2";
 
             return (
               <div
                 key={item.instanceId}
-                className="group relative bg-dark-850 border border-dark-750 hover:border-dark-600 rounded-xl p-5 transition-all shadow-sm"
+                className={`group relative rounded-xl p-5 transition-all shadow-sm border ${
+                  isStimulus
+                    ? "bg-amber-500/5 border-amber-500/40"
+                    : "bg-slate-850 border-slate-750 hover:border-slate-600"
+                }`}
               >
-                {/* Controles de orden y puntaje flotantes */}
-                <div className="flex items-center justify-between pb-3 mb-3 border-b border-dark-750">
+                {/* Controles de orden y puntaje */}
+                <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-750">
                   <div className="flex items-center space-x-2">
-                    <span className="w-6 h-6 rounded-full bg-brand-600/20 text-brand-400 font-bold text-xs flex items-center justify-center border border-brand-500/30">
-                      {index + 1}
-                    </span>
-                    <span className="text-xs font-semibold text-slate-300">
-                      Pregunta #{index + 1}
-                    </span>
-                    <span className="text-[10px] text-slate-500 px-2 py-0.5 rounded bg-dark-800">
-                      {isOpenType ? "Respuesta Abierta" : "Opción Múltiple"}
-                    </span>
+                    {isStimulus ? (
+                      <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 font-bold text-[11px] border border-amber-500/40 uppercase tracking-wide">
+                        {q.stimulusTitle || "Estímulo Compartido"}
+                        {q.stimulusRangeNote ? ` (${q.stimulusRangeNote})` : ""}
+                      </span>
+                    ) : (
+                      <>
+                        <span className="w-6 h-6 rounded-full bg-sky-600/20 text-sky-400 font-bold text-xs flex items-center justify-center border border-sky-500/30">
+                          {questionNumber}
+                        </span>
+                        <span className="text-xs font-semibold text-slate-200">
+                          Pregunta #{questionNumber}
+                        </span>
+                        <span className="text-[10px] text-slate-400 px-2 py-0.5 rounded bg-slate-800 border border-slate-700">
+                          {QUESTION_TYPE_LABELS[q.type] || q.type}
+                        </span>
+                      </>
+                    )}
                   </div>
 
                   <div className="flex items-center space-x-2">
                     {/* Reordenar */}
-                    <div className="flex items-center space-x-0.5 bg-dark-800 rounded border border-dark-700">
+                    <div className="flex items-center space-x-0.5 bg-slate-800 rounded border border-slate-700">
                       <button
                         onClick={() => onMoveItem(index, "up")}
                         disabled={index === 0}
@@ -372,20 +416,22 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({
                       </button>
                     </div>
 
-                    {/* Editor de puntaje */}
-                    <div className="flex items-center space-x-1 bg-dark-800 px-2 py-0.5 rounded border border-dark-700">
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.5"
-                        value={item.points || 1}
-                        onChange={(e) =>
-                          onUpdatePoints(item.instanceId, parseFloat(e.target.value) || 0)
-                        }
-                        className="w-10 bg-transparent text-xs text-right text-brand-400 font-semibold focus:outline-none"
-                      />
-                      <span className="text-[10px] text-slate-400">pts</span>
-                    </div>
+                    {/* Editor de puntaje (oculto si es estímulo) */}
+                    {!isStimulus && (
+                      <div className="flex items-center space-x-1 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.5"
+                          value={item.points || 1}
+                          onChange={(e) =>
+                            onUpdatePoints(item.instanceId, parseFloat(e.target.value) || 0)
+                          }
+                          className="w-10 bg-transparent text-xs text-right text-sky-400 font-semibold focus:outline-none"
+                        />
+                        <span className="text-[10px] text-slate-400">pts</span>
+                      </div>
+                    )}
 
                     {/* Eliminar del examen */}
                     <button
@@ -398,65 +444,188 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({
                   </div>
                 </div>
 
-                {/* Enunciado con KaTeX */}
+                {/* Enunciado con KaTeX / Tablas / Huecos */}
                 <div
-                  className="text-xs text-slate-200 leading-relaxed font-normal mb-4"
+                  className="prose prose-sm max-w-none text-xs text-slate-200 leading-relaxed font-normal mb-4"
                   dangerouslySetInnerHTML={{ __html: renderedPrompt }}
                 />
 
-                {/* Si es tipo abierta: renderiza el cuadro de respuesta del estudiante */}
-                {isOpenType ? (
+                {/* Videos adjuntos */}
+                <VideoEmbedList videos={q.videos} />
+
+                {/* Tipo Abierta */}
+                {isOpenType && (
                   <div
                     style={{
                       height: `${(q.openResponseHeight || 3.5) * 26}px`,
                       minHeight: "70px",
                     }}
-                    className="w-full bg-white/5 border border-dark-600 border-l-[3.5px] border-l-[#B08D57] rounded-lg p-2.5 text-[11px] text-slate-500 italic select-none"
+                    className="w-full bg-slate-900/60 border border-slate-700 border-l-[3.5px] border-l-amber-500 rounded-lg p-2.5 text-[11px] text-slate-400 italic select-none"
                   >
                     [Espacio asignado para procedimiento y respuesta escrita del estudiante]
                   </div>
-                ) : (
-                  /* Opciones múltiples */
-                  <div className="space-y-2">
-                    {q.options.map((opt, optIdx) => {
-                      const renderedOpt = renderMarkdownWithMath(opt.text);
-                      const highlightCorrect = isSolutions && opt.isCorrect;
+                )}
 
-                      return (
-                        <div
-                          key={opt.id}
-                          className={`flex items-start space-x-2 text-xs p-2 rounded-lg border transition-colors ${
-                            highlightCorrect
-                              ? "bg-emerald-950/30 border-emerald-700 text-emerald-200 font-medium"
-                              : "bg-dark-900/60 border-dark-750 text-slate-300"
-                          }`}
-                        >
-                          <span
-                            className={`font-bold shrink-0 text-xs ${
-                              highlightCorrect ? "text-emerald-400" : "text-[#1F3A5F] dark:text-brand-400"
+                {/* Tipos de Selección (Múltiple, Múltiple Respuesta, Verdadero/Falso) */}
+                {isChoiceType && (
+                  <div className="space-y-2.5">
+                    <div className={layoutClass}>
+                      {q.options.map((opt, optIdx) => {
+                        const renderedOpt = renderMarkdownWithMath(opt.text);
+                        const highlightCorrect = isSolutions && opt.isCorrect;
+                        const optImg = opt.image
+                          ? opt.image.startsWith("imagenes/") || opt.image.startsWith("images/")
+                            ? getImageSync(opt.image) || opt.image
+                            : opt.image
+                          : null;
+
+                        return (
+                          <div
+                            key={opt.id || optIdx}
+                            className={`flex flex-col gap-1.5 text-xs p-2.5 rounded-lg border transition-colors ${
+                              highlightCorrect
+                                ? "bg-emerald-950/30 border-emerald-700 text-emerald-200 font-medium"
+                                : "bg-slate-900/60 border-slate-750 text-slate-300"
                             }`}
                           >
-                            {optionLabels[optIdx]}.
-                          </span>
-                          <div
-                            className="flex-1 break-words [&>p]:inline"
-                            dangerouslySetInnerHTML={{ __html: renderedOpt }}
-                          />
-                          {highlightCorrect && (
-                            <span className="text-[10px] bg-emerald-600 text-white font-bold px-1.5 py-0.5 rounded shrink-0">
-                              Correcta
-                            </span>
-                          )}
+                            <div className="flex items-start space-x-2">
+                              <span
+                                className={`font-bold shrink-0 text-xs font-mono ${
+                                  highlightCorrect ? "text-emerald-400" : "text-sky-400"
+                                }`}
+                              >
+                                {optionLabels[optIdx]}.
+                              </span>
+                              <div
+                                className="flex-1 break-words [&>p]:inline"
+                                dangerouslySetInnerHTML={{ __html: renderedOpt }}
+                              />
+                              {highlightCorrect && (
+                                <span className="text-[10px] bg-emerald-600 text-white font-bold px-1.5 py-0.5 rounded shrink-0">
+                                  Correcta
+                                </span>
+                              )}
+                            </div>
+                            {optImg && (
+                              <img
+                                src={optImg}
+                                alt={`Opción ${optionLabels[optIdx]}`}
+                                style={{ maxWidth: `${opt.imageWidth || 80}%` }}
+                                className="rounded-lg mx-auto border border-slate-700"
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {q.type === "true_false" && q.requireJustification && (
+                      <div className="p-2.5 rounded-lg border border-slate-700 border-l-[3.5px] border-l-amber-500 bg-slate-900/60 text-[11px] text-slate-400 italic">
+                        Justificación: __________________________________________________________________
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Tipo Emparejamiento */}
+                {q.type === "matching" && q.matchingPairs && (() => {
+                  const rightCol = getShuffledMatchingRight(q);
+                  return (
+                    <div className="p-3.5 rounded-xl bg-slate-900/50 border border-slate-750">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-stretch text-xs">
+                        <div className="flex flex-col h-full">
+                          <div className="font-bold text-slate-400 uppercase text-[10px] tracking-wider mb-2 text-center">
+                            Columna A (Premisas)
+                          </div>
+                          <div className="flex-1 flex flex-col justify-evenly gap-2">
+                            {q.matchingPairs.map((pair, pIdx) => {
+                              const matchedIdx = rightCol.findIndex((r) => r.pairId === pair.id);
+                              const correctLetter =
+                                matchedIdx >= 0 ? String.fromCharCode(65 + matchedIdx) : "?";
+                              return (
+                                <div
+                                  key={pair.id || pIdx}
+                                  className="p-2.5 rounded-lg bg-slate-900 border border-slate-700 flex items-center justify-between gap-2 shadow-sm"
+                                >
+                                  <span className="flex-1">
+                                    <strong className="text-sky-400 font-mono mr-1.5">{pIdx + 1}.</strong>
+                                    {pair.left}
+                                  </span>
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <span className="font-mono text-slate-300 bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">
+                                      {isSolutions ? `[ ${correctLetter} ]` : "[   ]"}
+                                    </span>
+                                    <span className="w-2 h-2 rounded-full bg-sky-400/70 hidden sm:inline-block" />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
-                      );
-                    })}
+                        <div className="flex flex-col h-full">
+                          <div className="font-bold text-slate-400 uppercase text-[10px] tracking-wider mb-2 text-center">
+                            Columna B (Respuestas)
+                          </div>
+                          <div className="flex-1 flex flex-col justify-evenly gap-2">
+                            {rightCol.map((itemB, rIdx) => (
+                              <div
+                                key={rIdx}
+                                className="p-2.5 rounded-lg bg-slate-900 border border-slate-700 flex items-center gap-2 shadow-sm"
+                              >
+                                <span className="w-2 h-2 rounded-full bg-amber-400/70 shrink-0 hidden sm:inline-block" />
+                                <span className="flex-1">
+                                  <strong className="text-amber-400 font-mono mr-1.5">
+                                    {String.fromCharCode(65 + rIdx)}.
+                                  </strong>
+                                  {itemB.text}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Tipo Ordenamiento */}
+                {q.type === "ordering" && q.orderingItems && (
+                  <div className="space-y-1.5 text-xs">
+                    {q.orderingItems.map((ord, oIdx) => (
+                      <div
+                        key={ord.id || oIdx}
+                        className="p-2 rounded-lg bg-slate-900 border border-slate-750 flex items-center gap-2.5"
+                      >
+                        <span className="w-6 h-6 rounded bg-slate-800 border border-slate-700 text-center leading-6 font-mono font-bold text-sky-400">
+                          {isSolutions ? oIdx + 1 : " "}
+                        </span>
+                        <span className="text-slate-200">{ord.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Tipo Respuesta Numérica */}
+                {q.type === "numeric" && (
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-900 border border-slate-750 text-xs">
+                    <span className="text-slate-400 font-medium">Respuesta:</span>
+                    <span className="min-w-[110px] border-b-2 border-sky-500/70 pb-0.5 text-center font-mono font-bold text-emerald-400">
+                      {isSolutions ? q.numericAnswer || "—" : "\u00A0"}
+                    </span>
+                    {q.numericUnit && (
+                      <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 font-medium">
+                        {q.numericUnit}
+                      </span>
+                    )}
+                    {isSolutions && q.numericTolerance && (
+                      <span className="text-[11px] text-slate-400">({q.numericTolerance})</span>
+                    )}
                   </div>
                 )}
 
                 {/* Explicación / Solucionario */}
                 {isSolutions && q.explanation && (
-                  <div className="mt-3 p-2.5 bg-brand-950/30 border border-brand-800/40 rounded-lg text-xs text-brand-200">
-                    <span className="font-semibold text-brand-300">
+                  <div className="mt-3 p-2.5 bg-sky-950/30 border border-sky-800/40 rounded-lg text-xs text-sky-200">
+                    <span className="font-semibold text-sky-300">
                       {isOpenType ? "Criterio de Evaluación / Solución: " : "Solución / Justificación: "}
                     </span>
                     <div

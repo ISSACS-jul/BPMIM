@@ -61,7 +61,8 @@ export const LatexModal: React.FC<LatexModalProps> = ({
       }
     } catch (err) {
       console.error("Error generando ZIP de LaTeX:", err);
-      alert("No se pudo generar el archivo ZIP del proyecto LaTeX.");
+      setNotice("No se pudo generar el archivo ZIP del proyecto LaTeX.");
+      setTimeout(() => setNotice(null), 4000);
     } finally {
       setIsDownloadingZip(false);
     }

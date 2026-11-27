@@ -1,5 +1,6 @@
 import React from "react";
-import { BookOpen, Plus, Settings, Database } from "lucide-react";
+import { Plus, Settings, Database } from "lucide-react";
+import appLogo from "../assets/logo.png";
 
 interface HeaderProps {
   totalQuestions: number;
@@ -16,10 +17,12 @@ export const Header: React.FC<HeaderProps> = ({
     <header className="h-12 shrink-0 select-none z-20 flex items-center justify-between px-4 border-b bg-slate-900 border-slate-750">
       {/* ── Logo + Título + Breadcrumb ── */}
       <div className="flex items-center gap-3">
-        {/* Icono */}
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center shadow-md bg-sky-600 text-white">
-          <BookOpen className="w-4 h-4" />
-        </div>
+        {/* Logo de la app */}
+        <img
+          src={appLogo}
+          alt="BPMIM Logo"
+          className="w-8 h-8 rounded-lg object-cover shadow-md border border-slate-700/60"
+        />
 
         {/* Nombre de la app */}
         <span className="text-sm font-bold tracking-tight text-slate-100">

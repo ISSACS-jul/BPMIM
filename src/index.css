@@ -77,7 +77,43 @@
   --theme-scheme: dark;
 }
 
-/* 3. TEMA NEGRO PURO (Alto Contraste / OLED) */
+/* 3. TEMA FRAILEJÓN NOCTURNO (Oscuro Profundo de Páramo, Salvia y Oro Mate) */
+[data-theme="frailejon"],
+[data-theme="lotus"] {
+  --color-slate-50: 242 246 242;
+  --color-slate-100: 226 234 226;
+  --color-slate-200: 202 214 203;
+  --color-slate-300: 168 184 170;
+  --color-slate-400: 132 150 136;
+  --color-slate-500: 96 114 100;
+  --color-slate-600: 42 56 76;
+  --color-slate-700: 28 40 58;
+  --color-slate-750: 20 30 46;
+  --color-slate-800: 15 23 38;
+  --color-slate-850: 11 17 29;
+  --color-slate-900: 7 11 20;
+  --color-slate-950: 4 7 13;
+
+  --color-sky-50: 252 248 235;
+  --color-sky-100: 248 238 205;
+  --color-sky-200: 242 220 156;
+  --color-sky-300: 230 194 102;
+  --color-sky-400: 222 176 62;
+  --color-sky-500: 212 160 36;
+  --color-sky-600: 184 134 24;
+  --color-sky-700: 150 106 18;
+  --color-sky-800: 112 78 14;
+  --color-sky-900: 56 39 10;
+  --color-sky-950: 34 24 6;
+
+  --theme-bg: #070b14;
+  --theme-text: #dce5dc;
+  --theme-input-bg: #0f1726;
+  --theme-input-border: #1c283a;
+  --theme-scheme: dark;
+}
+
+/* 4. TEMA NEGRO PURO (Alto Contraste / OLED) */
 [data-theme="black"] {
   --color-slate-50: 255 255 255;
   --color-slate-100: 245 245 245;
@@ -252,6 +288,35 @@ input, textarea, select, button {
 
 html, body {
   -webkit-text-size-adjust: 100%;
+}
+
+/* Tablas Markdown ergonómicas */
+.prose table,
+.markdown-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75rem 0;
+  font-size: 0.92em;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 1px solid rgb(var(--color-slate-700));
+}
+
+.prose th,
+.markdown-content th {
+  background-color: rgba(var(--color-slate-800) / 0.9);
+  color: rgb(var(--color-sky-400));
+  font-weight: 600;
+  text-align: left;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid rgb(var(--color-slate-700));
+}
+
+.prose td,
+.markdown-content td {
+  padding: 0.45rem 0.7rem;
+  border: 1px solid rgb(var(--color-slate-700));
+  background-color: rgba(var(--color-slate-900) / 0.5);
 }
 
 /* Focus ring */

@@ -1,5 +1,6 @@
 import { parseImageAlt } from "./imageSize";
 import { Quiz } from "../types/quiz";
+import { getShuffledMatchingRight } from "./matchingHelper";
 import { saveAs } from "file-saver";
 import {
   Document,
@@ -19,7 +20,9 @@ import {
  */
 export function generateLatexCode(quiz: Quiz, mode: "exam" | "solutions" = "exam"): string {
   const isSolutions = mode === "solutions";
-  const mcCount = quiz.items.filter((item) => item.question.type !== "open").length;
+  const isChoice = (t: string) =>
+    t === "multiple_choice" || t === "multiple_response" || t === "true_false";
+  const mcCount = quiz.items.filter((item) => isChoice(item.question.type)).length;
 
   let tex = `% ============================================================
 %  PLANTILLA DE EVALUACIÓN  ·  Opción múltiple y preguntas abiertas
@@ -240,32 +243,91 @@ export function generateLatexCode(quiz: Quiz, mode: "exam" | "solutions" = "exam
 % ============================================================
 `;
 
-  quiz.items.forEach((item, index) => {
+  let qNum = 0;
+  quiz.items.forEach((item) => {
     const q = item.question;
+    if (q.type !== "stimulus") qNum += 1;
 
-    if (q.type === "open") {
+    const videoNotes =
+      q.videos && q.videos.length > 0
+        ? `\n\n{\\footnotesize\\color{azulprincipal}\\textbf{Material audiovisual:} ${q.videos
+            .map((v) => `${v.caption ? v.caption + ": " : ""}${v.url}`)
+            .join(" | ")}}`
+        : "";
+
+    if (q.type === "stimulus") {
+      tex += `\\begin{tcolorbox}[enhanced, colback=azulsuave, colframe=dorado, boxrule=0.8pt, arc=2pt]\n`;
+      if (q.stimulusTitle) {
+        tex += `{\\sffamily\\small\\bfseries\\color{azulprincipal} ${formatLatexBody(q.stimulusTitle)}${
+          q.stimulusRangeNote ? ` (${formatLatexBody(q.stimulusRangeNote)})` : ""
+        }}\\\\[4pt]\n`;
+      }
+      tex += `${formatLatexBody(q.prompt)}${videoNotes}\n\\end{tcolorbox}\n\\vspace{6pt}\n\n`;
+    } else if (q.type === "open") {
       const height = q.openResponseHeight ? `${q.openResponseHeight}cm` : "3.5cm";
-      tex += `\\preguntaAbierta{${formatLatexBody(q.prompt)}}{${height}}\n\n`;
+      tex += `\\preguntaAbierta{${formatLatexBody(q.prompt)}${videoNotes}}{${height}}\n\n`;
 
       if (isSolutions && q.explanation) {
-        tex += `{\\footnotesize\\color{azulprincipal}\\textbf{Criterio/Solución Pregunta ${index + 1}:} ${formatLatexBody(q.explanation)}}\n\\vspace{8pt}\n\n`;
+        tex += `{\\footnotesize\\color{azulprincipal}\\textbf{Criterio/Solución Pregunta ${qNum}:} ${formatLatexBody(q.explanation)}}\n\\vspace{8pt}\n\n`;
       }
+    } else if (q.type === "matching" && q.matchingPairs) {
+      const rightCol = getShuffledMatchingRight(q);
+      const maxLen = Math.max(q.matchingPairs.length, rightCol.length);
+      const rowsTex: string[] = [];
+      for (let i = 0; i < maxLen; i++) {
+        const leftPart = q.matchingPairs[i]
+          ? `${i + 1}. ${formatLatexBody(q.matchingPairs[i].left)}`
+          : "";
+        const rightPart = rightCol[i]
+          ? `${String.fromCharCode(65 + i)}. ${formatLatexBody(rightCol[i].text)}`
+          : "";
+        const ansBox = q.matchingPairs[i]
+          ? isSolutions
+            ? `[ ${String.fromCharCode(65 + Math.max(0, rightCol.findIndex((r) => r.pairId === q.matchingPairs![i].id)))} ]`
+            : "[ \\quad ]"
+          : "";
+        rowsTex.push(`  ${leftPart} \\hfill ${ansBox} \\quad ${rightPart}`);
+      }
+      const pairsTex = rowsTex.join(" \\\\\n");
+      tex += `\\preguntaAbierta{${formatLatexBody(q.prompt)}${videoNotes}\\\\[6pt]\n${pairsTex}}{1.2cm}\n\n`;
+    } else if (q.type === "ordering" && q.orderingItems) {
+      const stepsTex = q.orderingItems
+        .map((o) => `  [ \\quad ] ${formatLatexBody(o.text)}`)
+        .join(" \\\\\n");
+      tex += `\\preguntaAbierta{${formatLatexBody(q.prompt)}${videoNotes}\\\\[6pt]\n${stepsTex}}{1.2cm}\n\n`;
+    } else if (q.type === "numeric" || q.type === "fill_blanks") {
+      const promptFmt = formatLatexBody(
+        q.prompt.replace(/\{\{([^}]+?)\}\}/g, (_, ans) =>
+          isSolutions ? `\\underline{\\textbf{${ans}}}` : `\\underline{\\hspace{2.5cm}}`
+        )
+      );
+      const ansLine =
+        q.type === "numeric"
+          ? `\\\\[6pt]\\textbf{Respuesta:} ${
+              isSolutions ? `${q.numericAnswer || ""} ${q.numericUnit || ""}` : "\\underline{\\hspace{3cm}} " + (q.numericUnit || "")
+            }`
+          : "";
+      tex += `\\preguntaAbierta{${promptFmt}${videoNotes}${ansLine}}{1.2cm}\n\n`;
     } else {
       const optA = q.options[0]?.text || "";
       const optB = q.options[1]?.text || "";
       const optC = q.options[2]?.text || "";
       const optD = q.options[3]?.text || "";
 
-      tex += `\\preguntaMC{${formatLatexBody(q.prompt)}}
+      tex += `\\preguntaMC{${formatLatexBody(q.prompt)}${videoNotes}}
   {${formatLatexBody(optA)}}{${formatLatexBody(optB)}}
   {${formatLatexBody(optC)}}{${formatLatexBody(optD)}}\n\n`;
 
+      if (q.type === "true_false" && q.requireJustification) {
+        tex += `{\\footnotesize\\color{gristexto}\\textit{Justifique su respuesta:} \\hrulefill}\\\\[6pt]\n`;
+      }
+
       if (isSolutions) {
-        const correctOpt = q.options.find((o) => o.isCorrect);
-        const correctLetter = correctOpt
-          ? ["A", "B", "C", "D"][q.options.indexOf(correctOpt)]
-          : "N/A";
-        tex += `{\\footnotesize\\color{azulprincipal}\\textbf{Respuesta Correcta Pregunta ${index + 1}:} Opción ${correctLetter}. ${formatLatexBody(q.explanation || "")}}\n\\vspace{8pt}\n\n`;
+        const correctOpts = q.options
+          .map((o, idx) => (o.isCorrect ? ["A", "B", "C", "D", "E", "F"][idx] : null))
+          .filter(Boolean)
+          .join(", ");
+        tex += `{\\footnotesize\\color{azulprincipal}\\textbf{Respuesta Correcta Pregunta ${qNum}:} Opción ${correctOpts || "N/A"}. ${formatLatexBody(q.explanation || "")}}\n\\vspace{8pt}\n\n`;
       }
     }
   });
@@ -387,34 +449,76 @@ export async function exportToWord(quiz: Quiz, mode: "exam" | "solutions" = "exa
     }),
   ];
 
-  quiz.items.forEach((item, index) => {
+  let wordQNum = 0;
+  quiz.items.forEach((item) => {
     const q = item.question;
+    const isStimulus = q.type === "stimulus";
+    if (!isStimulus) wordQNum += 1;
 
     children.push(
       new Paragraph({
-        children: [
-          new TextRun({
-            text: `${index + 1}. `,
-            bold: true,
-            size: 22,
-            color: "1F3A5F",
-          }),
-          new TextRun({
-            text: `(${item.points} pt${item.points > 1 ? "s" : ""}) `,
-            italics: true,
-            size: 18,
-            color: "718096",
-          }),
-          new TextRun({
-            text: cleanWordText(q.prompt),
-            size: 22,
-          }),
-        ],
+        children: isStimulus
+          ? [
+              new TextRun({
+                text: `${q.stimulusTitle || "CONTEXTO COMPARTIDO"}${
+                  q.stimulusRangeNote ? ` (${q.stimulusRangeNote})` : ""
+                }: `,
+                bold: true,
+                size: 22,
+                color: "B08D57",
+              }),
+              new TextRun({
+                text: cleanWordText(q.prompt),
+                size: 22,
+              }),
+            ]
+          : [
+              new TextRun({
+                text: `${wordQNum}. `,
+                bold: true,
+                size: 22,
+                color: "1F3A5F",
+              }),
+              new TextRun({
+                text: `(${item.points} pt${item.points > 1 ? "s" : ""}) `,
+                italics: true,
+                size: 18,
+                color: "718096",
+              }),
+              new TextRun({
+                text: cleanWordText(
+                  q.prompt.replace(/\{\{([^}]+?)\}\}/g, (_, ans) =>
+                    isSolutions ? `[${ans}]` : "__________"
+                  )
+                ),
+                size: 22,
+              }),
+            ],
         spacing: { before: 180, after: 100 },
       })
     );
 
-    if (q.type === "open") {
+    if (q.videos && q.videos.length > 0) {
+      q.videos.forEach((v) => {
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: `    [Video${v.caption ? ` - ${v.caption}` : ""}: ${v.url}]`,
+                italics: true,
+                size: 18,
+                color: "2B6CB0",
+              }),
+            ],
+            spacing: { after: 60 },
+          })
+        );
+      });
+    }
+
+    if (isStimulus) {
+      // No requiere espacio de respuesta
+    } else if (q.type === "open") {
       const box = new Table({
         width: { size: 95, type: WidthType.PERCENTAGE },
         borders: {
@@ -446,8 +550,61 @@ export async function exportToWord(quiz: Quiz, mode: "exam" | "solutions" = "exa
         ],
       });
       children.push(box);
-    } else {
-      const labels = ["A", "B", "C", "D", "E"];
+    } else if (q.type === "matching" && q.matchingPairs) {
+      const rightCol = getShuffledMatchingRight(q);
+      const maxLen = Math.max(q.matchingPairs.length, rightCol.length);
+      for (let pIdx = 0; pIdx < maxLen; pIdx++) {
+        const leftItem = q.matchingPairs[pIdx];
+        const rightItem = rightCol[pIdx];
+        const ansBox = leftItem
+          ? isSolutions
+            ? `[ ${String.fromCharCode(65 + Math.max(0, rightCol.findIndex((r) => r.pairId === leftItem.id)))} ]`
+            : "[   ]"
+          : "     ";
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: `    ${leftItem ? `${pIdx + 1}. ${cleanWordText(leftItem.left)}   ${ansBox}` : "                              "}      ${rightItem ? `${String.fromCharCode(65 + pIdx)}. ${cleanWordText(rightItem.text)}` : ""}`,
+                size: 20,
+              }),
+            ],
+            spacing: { after: 60 },
+          })
+        );
+      }
+    } else if (q.type === "ordering" && q.orderingItems) {
+      q.orderingItems.forEach((o) => {
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: `    [   ]  ${cleanWordText(o.text)}`,
+                size: 20,
+              }),
+            ],
+            spacing: { after: 60 },
+          })
+        );
+      });
+    } else if (q.type === "numeric") {
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: `    Respuesta: ${
+                isSolutions ? `${q.numericAnswer || ""} ${q.numericUnit || ""}` : `________________  ${q.numericUnit || ""}`
+              }`,
+              bold: true,
+              size: 20,
+              color: isSolutions ? "1F3A5F" : "2D3748",
+            }),
+          ],
+          spacing: { after: 80 },
+        })
+      );
+    } else if (q.type !== "fill_blanks") {
+      const labels = ["A", "B", "C", "D", "E", "F"];
       q.options.forEach((opt, optIndex) => {
         const isCorrectMark = isSolutions && opt.isCorrect;
         children.push(

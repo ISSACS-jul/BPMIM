@@ -1,6 +1,8 @@
 import { parseImageAlt } from "./imageSize";
 import { Quiz } from "../types/quiz";
 import { getImageSync } from "./imageStore";
+import { getShuffledMatchingRight } from "./matchingHelper";
+import { parseVideoUrl } from "./markdownRenderer";
 
 export interface HtmlQuizConfig {
   timerMinutes: number; // 0 para sin límite
@@ -36,21 +38,78 @@ export function generateHtmlQuiz(quiz: Quiz, config: HtmlQuizConfig): string {
   // Preparar los items del quiz
   const preparedQuestions = quiz.items.map((item, idx) => {
     const q = item.question;
-    const isMultiple = q.type !== "open";
-    const promptProcessed = embedImagesInMarkdown(q.prompt);
-    const explanationProcessed = embedImagesInMarkdown(q.explanation || "");
+    const isChoice =
+      q.type === "multiple_choice" ||
+      q.type === "multiple_response" ||
+      q.type === "true_false";
 
-    const options = isMultiple
-      ? q.options.map((opt) => embedImagesInMarkdown(opt.text))
+    let fullPrompt = q.prompt || "";
+    if (q.type === "stimulus" && q.stimulusTitle) {
+      fullPrompt = `**${q.stimulusTitle}**\n\n${fullPrompt}`;
+    }
+    if (q.videos && q.videos.length > 0) {
+      const videoMd = q.videos
+        .map((v) => {
+          const cuesNote =
+            v.cuePoints && v.cuePoints.length > 0
+              ? `\n` +
+                v.cuePoints
+                  .sort((a, b) => a.timeSeconds - b.timeSeconds)
+                  .map((cp, cpI) => {
+                    const mm = Math.floor(cp.timeSeconds / 60);
+                    const ss = Math.floor(cp.timeSeconds % 60).toString().padStart(2, "0");
+                    return `  - ⏸ **Pausa ${cpI + 1} (${mm}:${ss})**: ${cp.prompt}`;
+                  })
+                  .join("\n")
+              : "";
+          return `\n\n📺 **Video${v.caption ? `: ${v.caption}` : ""}**: [${v.url}](${v.url})${cuesNote}`;
+        })
+        .join("");
+      fullPrompt += videoMd;
+    }
+    if (q.type === "matching" && q.matchingPairs) {
+      const rightCol = getShuffledMatchingRight(q);
+      const maxLen = Math.max(q.matchingPairs.length, rightCol.length);
+      const rows: string[] = [];
+      for (let i = 0; i < maxLen; i++) {
+        const l = q.matchingPairs[i] ? `${i + 1}. ${q.matchingPairs[i].left}` : "";
+        const r = rightCol[i] ? `${String.fromCharCode(65 + i)}. ${rightCol[i].text}` : "";
+        rows.push(`${l}   |   ${r}`);
+      }
+      fullPrompt += `\n\n${rows.join("\n")}`;
+    }
+    if (q.type === "ordering" && q.orderingItems) {
+      const ordMd = q.orderingItems.map((o) => `- [ ] ${o.text}`).join("\n");
+      fullPrompt += `\n\n${ordMd}`;
+    }
+    fullPrompt = fullPrompt.replace(/\{\{([^}]+?)\}\}/g, "________");
+
+    const promptProcessed = embedImagesInMarkdown(fullPrompt);
+    const explanationProcessed = embedImagesInMarkdown(
+      q.explanation ||
+        (q.type === "numeric" && q.numericAnswer
+          ? `Respuesta: ${q.numericAnswer} ${q.numericUnit || ""}`
+          : "")
+    );
+
+    const options = isChoice
+      ? q.options.map((opt) => {
+          const textPart = embedImagesInMarkdown(opt.text || "");
+          const imgPart = opt.image
+            ? `\n${embedImagesInMarkdown(`![opcion|${opt.imageWidth || 80}%](${opt.image})`)}`
+            : "";
+          return `${textPart}${imgPart}`.trim();
+        })
       : [];
-    const correctOptionIndex = isMultiple
+    const correctOptionIndex = isChoice
       ? q.options.findIndex((opt) => opt.isCorrect)
       : -1;
 
-    // Para preguntas abiertas, extraer palabras clave simples o concepto
+    // Para preguntas no-selección, extraer palabras clave simples o concepto
     let keywords: string[] = [];
-    if (!isMultiple && q.explanation) {
-      keywords = q.explanation
+    const refText = q.explanation || q.numericAnswer || "";
+    if (!isChoice && refText) {
+      keywords = refText
         .replace(/[^\w\sáéíóúÁÉÍÓÚñÑ]/g, " ")
         .split(/\s+/)
         .filter((w) => w.length > 4)
@@ -59,14 +118,31 @@ export function generateHtmlQuiz(quiz: Quiz, config: HtmlQuizConfig): string {
 
     return {
       id: `q_${idx + 1}`,
-      type: isMultiple ? "multiple" : "open",
+      type: isChoice ? "multiple" : "open",
       text: promptProcessed,
-      points: item.points || 1.0,
+      points: q.type === "stimulus" ? 0 : item.points || 1.0,
       options,
       correctOption: correctOptionIndex >= 0 ? correctOptionIndex : 0,
       keywords,
-      modelAnswer: !isMultiple ? explanationProcessed : "",
+      modelAnswer: !isChoice ? explanationProcessed : "",
       explanation: explanationProcessed,
+      videos: (q.videos || []).map((v) => {
+        const p = parseVideoUrl(v.url);
+        return {
+          id: v.id,
+          url: v.url,
+          kind: p.kind,
+          embedUrl: p.embedUrl,
+          youtubeId: p.youtubeId || null,
+          caption: v.caption || "",
+          playbackScope: v.playbackScope || "full",
+          startSeconds: v.startSeconds || 0,
+          endSeconds: v.endSeconds,
+          feedbackMode: v.feedbackMode || "at_end",
+          feedbackAtSeconds: v.feedbackAtSeconds,
+          cuePoints: [...(v.cuePoints || [])].sort((a, b) => a.timeSeconds - b.timeSeconds),
+        };
+      }),
     };
   });
 
@@ -443,6 +519,180 @@ export function generateHtmlQuiz(quiz: Quiz, config: HtmlQuizConfig): string {
             }
         }
 
+        let activeYtTimers = [];
+        function clearVideoTimers() {
+            activeYtTimers.forEach(id => clearInterval(id));
+            activeYtTimers = [];
+        }
+
+        function renderInteractiveVideos(q) {
+            clearVideoTimers();
+            const container = document.getElementById('q-text');
+            if (!q.videos || q.videos.length === 0) return;
+
+            const wrap = document.createElement('div');
+            wrap.className = 'mt-4 space-y-4';
+            container.appendChild(wrap);
+
+            q.videos.forEach((v, vIdx) => {
+                const card = document.createElement('div');
+                card.className = 'rounded-xl overflow-hidden border border-slate-700 bg-slate-900';
+                const playerBoxId = 'yt-player-' + q.id + '-' + vIdx;
+                const overlayId = 'vid-overlay-' + q.id + '-' + vIdx;
+
+                let mediaHtml = '';
+                if (v.kind === 'direct') {
+                    mediaHtml = '<video id="' + playerBoxId + '" src="' + v.url + '" controls class="w-full max-h-72 bg-black"></video>';
+                } else {
+                    mediaHtml = '<div id="' + playerBoxId + '" class="w-full h-64 bg-black"></div>';
+                }
+
+                card.innerHTML = mediaHtml +
+                    '<div id="' + overlayId + '" class="hidden p-4 bg-slate-950 border-t-2 border-amber-500 space-y-3"></div>';
+                wrap.appendChild(card);
+
+                const triggered = new Set();
+                const cueAnswers = {};
+                let feedbackShown = false;
+                let currentPlayer = null;
+                let currentVideoEl = null;
+
+                function showFeedbackSummary() {
+                    feedbackShown = true;
+                    const ov = document.getElementById(overlayId);
+                    if (!ov || !v.cuePoints || v.cuePoints.length === 0) return;
+                    const rows = v.cuePoints.map((cp, ci) => {
+                        const ans = cueAnswers[cp.id];
+                        const corrIdx = (cp.options || []).findIndex(o => o.isCorrect);
+                        const ok = corrIdx >= 0 && ans === corrIdx;
+                        const corrText = corrIdx >= 0 ? cp.options[corrIdx].text : '';
+                        const ansText = typeof ans === 'number' && cp.options[ans] ? cp.options[ans].text : 'Sin responder';
+                        return '<div class="p-2 rounded bg-slate-900 border border-slate-700 text-xs">' +
+                            '<div class="font-semibold text-white">#' + (ci + 1) + ' ' + escapeText(cp.prompt) + '</div>' +
+                            '<div class="text-slate-400 mt-0.5">Tu respuesta: <strong class="' + (ok ? 'text-emerald-400' : 'text-rose-400') + '">' + escapeText(ansText) + '</strong> &bull; Correcta: <strong class="text-emerald-400">' + escapeText(corrText) + '</strong></div>' +
+                            '</div>';
+                    }).join('');
+                    ov.innerHTML = '<div class="text-xs font-bold text-emerald-400">✔ Revisión de Respuestas del Video</div>' +
+                        '<div class="space-y-1.5">' + rows + '</div>' +
+                        '<div class="flex justify-end"><button type="button" onclick="document.getElementById(\\'' + overlayId + '\\').classList.add(\\'hidden\\')" class="px-3 py-1 rounded bg-slate-800 text-slate-200 text-xs">Cerrar</button></div>';
+                    ov.classList.remove('hidden');
+                }
+
+                function showCue(cp) {
+                    triggered.add(cp.id);
+                    const ov = document.getElementById(overlayId);
+                    if (!ov) return;
+                    const mm = Math.floor(cp.timeSeconds / 60);
+                    const ss = String(Math.floor(cp.timeSeconds % 60)).padStart(2, '0');
+                    let optsHtml = '';
+                    if (cp.options && cp.options.length > 0) {
+                        optsHtml = '<div class="grid grid-cols-1 sm:grid-cols-2 gap-2" id="opts-' + cp.id + '">' +
+                            cp.options.map((o, oi) =>
+                                '<button type="button" data-idx="' + oi + '" class="cue-opt-btn p-2 rounded-lg border border-slate-700 bg-slate-900 text-left text-xs text-slate-100">' +
+                                String.fromCharCode(65 + oi) + '. ' + escapeText(o.text) + '</button>'
+                            ).join('') + '</div>';
+                    }
+                    ov.innerHTML =
+                        '<div class="text-xs font-bold text-amber-400">⏸ Pausa automática en ' + mm + ':' + ss + '</div>' +
+                        '<p class="text-sm font-semibold text-white">' + escapeText(cp.prompt) + '</p>' +
+                        optsHtml +
+                        '<div class="flex justify-end"><button type="button" id="resume-' + cp.id + '" class="px-4 py-1.5 rounded-lg bg-sky-600 text-white text-xs font-semibold">▶ Continuar Video</button></div>';
+                    ov.classList.remove('hidden');
+
+                    ov.querySelectorAll('.cue-opt-btn').forEach(btn => {
+                        btn.onclick = () => {
+                            const oi = Number(btn.getAttribute('data-idx'));
+                            cueAnswers[cp.id] = oi;
+                            ov.querySelectorAll('.cue-opt-btn').forEach(b => {
+                                b.className = 'cue-opt-btn p-2 rounded-lg border border-slate-700 bg-slate-900 text-left text-xs text-slate-100';
+                            });
+                            if (v.feedbackMode === 'immediate') {
+                                const isCorr = cp.options[oi] && cp.options[oi].isCorrect;
+                                btn.classList.add(isCorr ? 'border-emerald-500' : 'border-rose-500');
+                                btn.classList.add(isCorr ? 'bg-emerald-950/40' : 'bg-rose-950/40');
+                            } else {
+                                btn.classList.add('border-sky-500', 'bg-sky-900/40');
+                            }
+                        };
+                    });
+
+                    document.getElementById('resume-' + cp.id).onclick = () => {
+                        ov.classList.add('hidden');
+                        if (currentVideoEl) currentVideoEl.play();
+                        if (currentPlayer && currentPlayer.playVideo) currentPlayer.playVideo();
+                    };
+                }
+
+                function checkTime(now, pauseCb) {
+                    if (v.playbackScope === 'clip' && v.endSeconds && now >= v.endSeconds) {
+                        pauseCb();
+                        if (v.feedbackMode === 'at_end' && !feedbackShown) showFeedbackSummary();
+                        return;
+                    }
+                    if (v.feedbackMode === 'at_timestamp' && v.feedbackAtSeconds !== undefined && !feedbackShown && now >= v.feedbackAtSeconds && now < v.feedbackAtSeconds + 1.5) {
+                        pauseCb();
+                        showFeedbackSummary();
+                        return;
+                    }
+                    const hit = (v.cuePoints || []).find(cp => !triggered.has(cp.id) && now >= cp.timeSeconds && now < cp.timeSeconds + 1.5);
+                    if (hit) { pauseCb(); showCue(hit); }
+                }
+
+                if (v.kind === 'direct') {
+                    const el = document.getElementById(playerBoxId);
+                    currentVideoEl = el;
+                    el.addEventListener('loadedmetadata', () => {
+                        if (v.playbackScope === 'clip' && v.startSeconds) el.currentTime = v.startSeconds;
+                    });
+                    el.addEventListener('timeupdate', () => {
+                        checkTime(el.currentTime, () => el.pause());
+                    });
+                    el.addEventListener('ended', () => {
+                        if (v.feedbackMode === 'at_end' && !feedbackShown) showFeedbackSummary();
+                    });
+                } else if (v.kind === 'youtube' && v.youtubeId) {
+                    const initYt = () => {
+                        if (!window.YT || !window.YT.Player) return;
+                        const pVars = { rel: 0, modestbranding: 1, playsinline: 1 };
+                        if (v.playbackScope === 'clip' && v.startSeconds) pVars.start = Math.floor(v.startSeconds);
+                        if (v.playbackScope === 'clip' && v.endSeconds) pVars.end = Math.floor(v.endSeconds);
+                        currentPlayer = new window.YT.Player(playerBoxId, {
+                            videoId: v.youtubeId,
+                            width: '100%',
+                            height: '100%',
+                            playerVars: pVars,
+                            events: {
+                                onStateChange: (ev) => {
+                                    if (ev.data === 0 && v.feedbackMode === 'at_end' && !feedbackShown) {
+                                        showFeedbackSummary();
+                                    }
+                                    if (ev.data === 1) {
+                                        const tId = setInterval(() => {
+                                            try {
+                                                checkTime(currentPlayer.getCurrentTime(), () => currentPlayer.pauseVideo());
+                                            } catch {}
+                                        }, 250);
+                                        activeYtTimers.push(tId);
+                                    }
+                                }
+                            }
+                        });
+                    };
+                    if (window.YT && window.YT.Player) {
+                        initYt();
+                    } else {
+                        if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
+                            const s = document.createElement('script');
+                            s.src = 'https://www.youtube.com/iframe_api';
+                            document.head.appendChild(s);
+                        }
+                        const prev = window.onYouTubeIframeAPIReady;
+                        window.onYouTubeIframeAPIReady = () => { if (prev) prev(); initYt(); };
+                    }
+                }
+            });
+        }
+
         function renderQuestion() {
             const q = activeQuestions[currentIndex];
             const total = activeQuestions.length;
@@ -460,6 +710,7 @@ export function generateHtmlQuiz(quiz: Quiz, config: HtmlQuizConfig): string {
             }
 
             document.getElementById('q-text').innerHTML = renderMath(q.text);
+            renderInteractiveVideos(q);
 
             const answerArea = document.getElementById('q-answer-area');
             answerArea.innerHTML = '';

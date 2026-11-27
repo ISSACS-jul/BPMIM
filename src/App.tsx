@@ -4,12 +4,13 @@ import { initialQuestions } from "./data/sampleQuestions";
 import { Header } from "./components/Header";
 import { BankPanel } from "./components/BankPanel";
 import { QuizPanel } from "./components/QuizPanel";
-import { QuestionModal } from "./components/QuestionModal";
+import { QuestionStudio } from "./components/QuestionStudio";
 import { LatexModal } from "./components/LatexModal";
 import { BackupModal } from "./components/BackupModal";
 import { ImportModal } from "./components/ImportModal";
 import { ExportHtmlModal } from "./components/ExportHtmlModal";
 import { SettingsModal } from "./components/SettingsModal";
+import { ConfirmDialog } from "./components/ConfirmDialog";
 import { exportToWord, exportToPdf } from "./utils/exporters";
 import { initImageStore, onImageStoreUpdate, offImageStoreUpdate } from "./utils/imageStore";
 import {
@@ -17,6 +18,7 @@ import {
   aplicarTemaVisual,
   aplicarEscalaUI,
 } from "./utils/theme";
+import { buildShuffledMatchingOrder } from "./utils/matchingHelper";
 
 const STORAGE_KEY_BANK = "banco_preguntas_data_v2";
 const STORAGE_KEY_QUIZ = "banco_preguntas_quiz_v2";
@@ -208,14 +210,20 @@ export function App() {
     }));
   };
 
+  const [questionToDelete, setQuestionToDelete] = useState<string | null>(null);
+
   const handleDeleteQuestion = (id: string) => {
-    if (confirm("¿Estás seguro de eliminar esta pregunta del banco?")) {
-      setQuestions((prev) => prev.filter((q) => q.id !== id));
-      setQuiz((prev) => ({
-        ...prev,
-        items: prev.items.filter((it) => it.question.id !== id),
-      }));
-    }
+    setQuestionToDelete(id);
+  };
+
+  const confirmDeleteQuestion = () => {
+    if (!questionToDelete) return;
+    setQuestions((prev) => prev.filter((q) => q.id !== questionToDelete));
+    setQuiz((prev) => ({
+      ...prev,
+      items: prev.items.filter((it) => it.question.id !== questionToDelete),
+    }));
+    setQuestionToDelete(null);
   };
 
   // Operaciones sobre el Quiz
@@ -280,13 +288,28 @@ export function App() {
   const handleShuffleOptions = () => {
     setQuiz((prev) => ({
       ...prev,
-      items: prev.items.map((item) => ({
-        ...item,
-        question: {
-          ...item.question,
-          options: [...item.question.options].sort(() => Math.random() - 0.5),
-        },
-      })),
+      items: prev.items.map((item) => {
+        const q = item.question;
+        if (q.type === "matching" && q.matchingPairs) {
+          return {
+            ...item,
+            question: {
+              ...q,
+              matchingRightOrder: buildShuffledMatchingOrder(
+                q.matchingPairs,
+                q.matchingDistractors || []
+              ),
+            },
+          };
+        }
+        return {
+          ...item,
+          question: {
+            ...q,
+            options: [...q.options].sort(() => Math.random() - 0.5),
+          },
+        };
+      }),
     }));
   };
 
@@ -369,8 +392,8 @@ export function App() {
         </div>
       </div>
 
-      {/* Modal para Crear / Editar Pregunta */}
-      <QuestionModal
+      {/* Ventana Exclusiva para Crear / Editar Pregunta */}
+      <QuestionStudio
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
@@ -421,6 +444,18 @@ export function App() {
         isOpen={isExportHtmlModalOpen}
         onClose={() => setIsExportHtmlModalOpen(false)}
         quiz={quiz}
+      />
+
+      {/* Diálogo de Confirmación personalizado acorde al tema */}
+      <ConfirmDialog
+        isOpen={questionToDelete !== null}
+        title="Eliminar Pregunta"
+        message="¿Estás seguro de eliminar esta pregunta del banco? También se quitará del examen actual si estaba incluida."
+        confirmText="Sí, eliminar"
+        cancelText="Cancelar"
+        variant="danger"
+        onConfirm={confirmDeleteQuestion}
+        onCancel={() => setQuestionToDelete(null)}
       />
     </div>
   );

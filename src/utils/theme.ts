@@ -1,4 +1,4 @@
-export type TemaVisual = 'default' | 'dark-gold' | 'black' | 'light' | 'light-gold';
+export type TemaVisual = 'default' | 'dark-gold' | 'frailejon' | 'black' | 'light' | 'light-gold';
 
 export const TEMAS_INFO: {
   id: TemaVisual;
@@ -25,6 +25,15 @@ export const TEMAS_INFO: {
     previewBg: '#101319',
     previewCard: '#181c24',
     previewAccent: '#a4804c',
+    isDark: true,
+  },
+  {
+    id: 'frailejon',
+    nombre: 'Frailejón Nocturno (Logo)',
+    descripcion: 'Noche profunda de páramo (bajo brillo) con hojas salvia y oro mate del frailejón',
+    previewBg: '#070b14',
+    previewCard: '#0d1424',
+    previewAccent: '#d4a024',
     isDark: true,
   },
   {
@@ -84,10 +93,11 @@ export function aplicarEscalaUI(factor: number) {
 }
 
 export function inicializarTemaYEscala(defaultTema?: TemaVisual, defaultEscala?: number) {
-  const savedTheme =
-    (localStorage.getItem('app_tema_visual') as TemaVisual) ||
+  let savedTheme =
+    (localStorage.getItem('app_tema_visual') as string) ||
     defaultTema ||
     'default';
+  if (savedTheme === 'lotus') savedTheme = 'frailejon';
 
   let savedScale = Number(localStorage.getItem('app_ui_scale'));
   if (!savedScale) {
@@ -98,6 +108,6 @@ export function inicializarTemaYEscala(defaultTema?: TemaVisual, defaultEscala?:
   }
   if (!savedScale) savedScale = defaultEscala || 1;
 
-  aplicarTemaVisual(savedTheme);
+  aplicarTemaVisual(savedTheme as TemaVisual);
   aplicarEscalaUI(savedScale);
 }
